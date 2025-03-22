@@ -232,8 +232,9 @@ const Index = () => {
         </div>
       </footer>
       
-      {/* Custom CSS for scroll reveal */}
-      <style jsx>{`
+      {/* Custom CSS for scroll reveal - Fixed by removing the jsx property */}
+      <style>
+        {`
         .reveal {
           opacity: 0;
           transform: translateY(30px);
@@ -244,7 +245,8 @@ const Index = () => {
           opacity: 1;
           transform: translateY(0);
         }
-      `}</style>
+        `}
+      </style>
     </main>
   );
 };
