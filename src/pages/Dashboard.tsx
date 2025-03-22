@@ -15,9 +15,18 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Music, DollarSign, BarChart2, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import UserMenu from "@/components/UserMenu";
+import { Navigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("catalog");
+  const { isAuthenticated, user } = useAuth();
+  
+  // Redirect if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
   
   // Mock data
   const catalogData = [
@@ -54,17 +63,20 @@ const Dashboard = () => {
             <img src="/lovable-uploads/33be2c38-edf9-42e0-aa88-0b492632243d.png" alt="MalpinohDistro Logo" className="h-10 mr-2" />
             <span className="text-xl font-bold">MalpinohDistro</span>
           </div>
-          <nav>
-            <a href="/" className="px-4 py-2 text-gray-600 hover:text-red-600 transition-colors">Home</a>
-            <a href="/dashboard" className="px-4 py-2 text-red-600 font-medium">Dashboard</a>
-            <a href="#submit" className="px-4 py-2 text-gray-600 hover:text-red-600 transition-colors">Submit Music</a>
-          </nav>
+          <div className="flex items-center">
+            <nav className="mr-4">
+              <a href="/" className="px-4 py-2 text-gray-600 hover:text-red-600 transition-colors">Home</a>
+              <a href="/dashboard" className="px-4 py-2 text-red-600 font-medium">Dashboard</a>
+              <a href="/settings" className="px-4 py-2 text-gray-600 hover:text-red-600 transition-colors">Settings</a>
+            </nav>
+            <UserMenu />
+          </div>
         </div>
       </header>
       
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-2">Artist Dashboard</h1>
-        <p className="text-gray-600 mb-8">Manage your music catalog and track your earnings</p>
+        <p className="text-gray-600 mb-8">Welcome back, {user?.name}. Manage your music catalog and track your earnings</p>
         
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
