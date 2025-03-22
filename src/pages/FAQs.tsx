@@ -103,7 +103,7 @@ const FAQs = () => {
                   <AccordionItem value="royalties-3">
                     <AccordionTrigger>How do I link my OPay wallet for payments?</AccordionTrigger>
                     <AccordionContent>
-                      You can link your OPay wallet in your account settings. Navigate to Settings > Payment Methods > Add OPay Wallet, and enter your OPay account details. This wallet will be used for all your future royalty payments.
+                      You can link your OPay wallet in your account settings. Navigate to Settings {'>'} Payment Methods {'>'} Add OPay Wallet, and enter your OPay account details. This wallet will be used for all your future royalty payments.
                     </AccordionContent>
                   </AccordionItem>
                   
