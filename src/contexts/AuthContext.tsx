@@ -9,12 +9,14 @@ export interface User {
   email: string;
   name: string;
   opayWallet?: string;
+  isAdmin?: boolean; // Added isAdmin property
 }
 
 // Define the context type
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isAdmin: boolean; // Added isAdmin property
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -40,13 +42,23 @@ const mockUsers = [
     email: 'demo@example.com',
     password: 'password123',
     name: 'Demo User',
-    opayWallet: ''
+    opayWallet: '',
+    isAdmin: false
+  },
+  {
+    id: '2',
+    email: 'admin@example.com',
+    password: 'admin123',
+    name: 'Admin User',
+    opayWallet: '',
+    isAdmin: true
   }
 ];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const navigate = useNavigate();
 
   // Check for logged in user on initialization
@@ -56,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
       setIsAuthenticated(true);
+      setIsAdmin(parsedUser.isAdmin || false);
     }
   }, []);
 
@@ -78,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Save to state and localStorage
         setUser(userWithoutPassword);
         setIsAuthenticated(true);
+        setIsAdmin(userWithoutPassword.isAdmin || false);
         localStorage.setItem('malpinohdistro_user', JSON.stringify(userWithoutPassword));
         
         toast({
@@ -126,6 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         name,
         opayWallet: '',
+        isAdmin: false,
       };
       
       // In a real app, this would be an API call
@@ -134,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Save to state and localStorage
       setUser(newUser);
       setIsAuthenticated(true);
+      setIsAdmin(false);
       localStorage.setItem('malpinohdistro_user', JSON.stringify(newUser));
       
       toast({
@@ -156,6 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
+    setIsAdmin(false);
     localStorage.removeItem('malpinohdistro_user');
     navigate('/login');
     
@@ -170,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
+      setIsAdmin(updatedUser.isAdmin || false);
       localStorage.setItem('malpinohdistro_user', JSON.stringify(updatedUser));
       
       toast({
@@ -183,6 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{ 
       user, 
       isAuthenticated, 
+      isAdmin,
       login, 
       signup, 
       logout, 

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ const Withdraw = () => {
   const { isAuthenticated, user } = useAuth();
   const [amount, setAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate(); // Add navigate hook
   
   // Mocked balance data (would come from API in production)
   const balance = 125.42;
@@ -67,6 +68,9 @@ const Withdraw = () => {
       });
       setAmount('');
       setIsSubmitting(false);
+      
+      // Redirect to dashboard after successful withdrawal
+      navigate('/dashboard');
     }, 1500);
   };
   

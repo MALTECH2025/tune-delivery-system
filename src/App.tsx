@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Settings from "./pages/Settings";
 import AuthGuard from "./components/AuthGuard";
+import AdminGuard from "./components/AdminGuard";
 import Distribute from "./pages/Distribute";
 import Copyright from "./pages/Copyright";
 import Privacy from "./pages/Privacy";
@@ -21,6 +22,7 @@ import Terms from "./pages/Terms";
 import FAQs from "./pages/FAQs";
 import Support from "./pages/Support";
 import Withdraw from "./pages/Withdraw";
+import Admin from "./pages/Admin";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -68,6 +70,14 @@ function App() {
                     <AuthGuard>
                       <Withdraw />
                     </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/admin" 
+                  element={
+                    <AdminGuard>
+                      <Admin />
+                    </AdminGuard>
                   } 
                 />
                 <Route path="/copyright" element={<Copyright />} />
