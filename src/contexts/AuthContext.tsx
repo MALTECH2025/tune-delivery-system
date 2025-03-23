@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -8,12 +9,15 @@ export interface User {
   name: string;
   opayWallet?: string;
   isAdmin?: boolean;
+  subscriptionPlan?: 'monthly' | 'quarterly' | 'yearly' | null;
+  subscriptionExpiryDate?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  hasActiveSubscription: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -37,7 +41,9 @@ const mockUsers = [
     password: 'password123',
     name: 'Demo User',
     opayWallet: '',
-    isAdmin: false
+    isAdmin: false,
+    subscriptionPlan: null,
+    subscriptionExpiryDate: null
   },
   {
     id: '2',
@@ -45,7 +51,9 @@ const mockUsers = [
     password: 'admin123',
     name: 'Admin User',
     opayWallet: '',
-    isAdmin: true
+    isAdmin: true,
+    subscriptionPlan: null,
+    subscriptionExpiryDate: null
   }
 ];
 
@@ -53,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean>(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,6 +71,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(parsedUser);
       setIsAuthenticated(true);
       setIsAdmin(parsedUser.isAdmin || false);
+      
+      // Check if user has active subscription
+      if (parsedUser.subscriptionPlan && parsedUser.subscriptionExpiryDate) {
+        const expiryDate = new Date(parsedUser.subscriptionExpiryDate);
+        setHasActiveSubscription(expiryDate > new Date());
+      } else {
+        setHasActiveSubscription(false);
+      }
     }
   }, []);
 
@@ -79,6 +96,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(userWithoutPassword);
         setIsAuthenticated(true);
         setIsAdmin(userWithoutPassword.isAdmin || false);
+        
+        // Check if user has active subscription
+        if (userWithoutPassword.subscriptionPlan && userWithoutPassword.subscriptionExpiryDate) {
+          const expiryDate = new Date(userWithoutPassword.subscriptionExpiryDate);
+          setHasActiveSubscription(expiryDate > new Date());
+        } else {
+          setHasActiveSubscription(false);
+        }
+        
         localStorage.setItem('malpinohdistro_user', JSON.stringify(userWithoutPassword));
         
         toast({
@@ -124,11 +150,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name,
         opayWallet: '',
         isAdmin: false,
+        subscriptionPlan: null,
+        subscriptionExpiryDate: null
       };
       
       setUser(newUser);
       setIsAuthenticated(true);
       setIsAdmin(false);
+      setHasActiveSubscription(false);
       localStorage.setItem('malpinohdistro_user', JSON.stringify(newUser));
       
       toast({
@@ -151,6 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
+    setHasActiveSubscription(false);
     localStorage.removeItem('malpinohdistro_user');
     navigate('/login');
     
@@ -165,6 +195,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
       setIsAdmin(updatedUser.isAdmin || false);
+      
+      // Update subscription status
+      if (updatedUser.subscriptionPlan && updatedUser.subscriptionExpiryDate) {
+        const expiryDate = new Date(updatedUser.subscriptionExpiryDate);
+        setHasActiveSubscription(expiryDate > new Date());
+      } else {
+        setHasActiveSubscription(false);
+      }
+      
       localStorage.setItem('malpinohdistro_user', JSON.stringify(updatedUser));
       
       toast({
@@ -179,6 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user, 
       isAuthenticated, 
       isAdmin,
+      hasActiveSubscription,
       login, 
       signup, 
       logout, 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +18,7 @@ const formSchema = z.object({
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
-  const { login, isAdmin } = useAuth();
+  const { login, isAdmin, hasActiveSubscription } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -38,6 +39,8 @@ const Login = () => {
       if (success) {
         if (isAdmin) {
           navigate('/admin');
+        } else if (!hasActiveSubscription) {
+          navigate('/pricing');
         } else {
           navigate(from);
         }

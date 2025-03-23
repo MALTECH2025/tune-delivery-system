@@ -13,7 +13,9 @@ import {
   ChevronRight,
   AlertTriangle,
   CheckCircle,
-  Bell
+  Bell,
+  FileText,
+  BadgePercent
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +24,9 @@ import UsersList from '@/components/admin/UsersList';
 import WithdrawalRequests from '@/components/admin/WithdrawalRequests';
 import DistributionReviews from '@/components/admin/DistributionReviews';
 import AdminDashboard from '@/components/admin/AdminDashboard';
+import SubscriptionManagement from '@/components/admin/SubscriptionManagement';
+import PlatformSettings from '@/components/admin/PlatformSettings';
+import DistributionFiles from '@/components/admin/DistributionFiles';
 
 const Admin = () => {
   const { isAdmin, logout } = useAuth();
@@ -37,12 +42,14 @@ const Admin = () => {
     { id: 1, message: "New distribution request from John Doe", time: "5 minutes ago", type: "distribution" },
     { id: 2, message: "New withdrawal request for $150", time: "1 hour ago", type: "withdrawal" },
     { id: 3, message: "New user registration: sarah@example.com", time: "3 hours ago", type: "user" },
+    { id: 4, message: "New subscription payment received", time: "2 hours ago", type: "subscription" },
   ];
   
   const pendingTasks = [
     { id: 1, title: "Review withdrawal requests", count: 12, type: "withdrawals" },
     { id: 2, title: "Approve distribution submissions", count: 8, type: "distributions" },
     { id: 3, title: "User account verifications", count: 5, type: "users" },
+    { id: 4, title: "Pending subscription payments", count: 3, type: "subscriptions" },
   ];
   
   const handleTaskClick = (type) => {
@@ -115,6 +122,22 @@ const Admin = () => {
                   Distributions
                 </Button>
                 <Button 
+                  variant={activeTab === 'files' ? "default" : "ghost"} 
+                  className="w-full justify-start" 
+                  onClick={() => setActiveTab('files')}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Files
+                </Button>
+                <Button 
+                  variant={activeTab === 'subscriptions' ? "default" : "ghost"} 
+                  className="w-full justify-start" 
+                  onClick={() => setActiveTab('subscriptions')}
+                >
+                  <BadgePercent className="h-4 w-4 mr-2" />
+                  Subscriptions
+                </Button>
+                <Button 
                   variant={activeTab === 'settings' ? "default" : "ghost"} 
                   className="w-full justify-start" 
                   onClick={() => setActiveTab('settings')}
@@ -145,6 +168,9 @@ const Admin = () => {
                       )}
                       {notification.type === 'user' && (
                         <Users className="h-4 w-4 text-orange-500 mt-1 flex-shrink-0" />
+                      )}
+                      {notification.type === 'subscription' && (
+                        <BadgePercent className="h-4 w-4 text-purple-500 mt-1 flex-shrink-0" />
                       )}
                       <div>
                         <p className="text-sm">{notification.message}</p>
@@ -187,7 +213,7 @@ const Admin = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
               {/* Desktop TabsList - hidden on mobile */}
               <div className="bg-card p-1 rounded-lg shadow-sm border border-border hidden md:block">
-                <TabsList className="w-full grid grid-cols-5">
+                <TabsList className="w-full grid grid-cols-7">
                   <TabsTrigger value="dashboard" className="py-3">
                     <LayoutDashboard className="h-4 w-4 mr-2" />
                     Dashboard
@@ -203,6 +229,14 @@ const Admin = () => {
                   <TabsTrigger value="distributions" className="py-3">
                     <Music className="h-4 w-4 mr-2" />
                     Distributions
+                  </TabsTrigger>
+                  <TabsTrigger value="files" className="py-3">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Files
+                  </TabsTrigger>
+                  <TabsTrigger value="subscriptions" className="py-3">
+                    <BadgePercent className="h-4 w-4 mr-2" />
+                    Subscriptions
                   </TabsTrigger>
                   <TabsTrigger value="settings" className="py-3">
                     <Settings className="h-4 w-4 mr-2" />
@@ -227,76 +261,16 @@ const Admin = () => {
                 <DistributionReviews />
               </TabsContent>
               
+              <TabsContent value="files">
+                <DistributionFiles />
+              </TabsContent>
+              
+              <TabsContent value="subscriptions">
+                <SubscriptionManagement />
+              </TabsContent>
+              
               <TabsContent value="settings">
-                <div className="bg-card p-6 rounded-lg border border-border">
-                  <h2 className="text-2xl font-bold mb-6">Admin Settings</h2>
-                  
-                  <div className="space-y-8">
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Platform Settings</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Distribution Fee</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-center justify-between">
-                              <span>Current: $20.00</span>
-                              <Button size="sm">Change</Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Minimum Withdrawal</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-center justify-between">
-                              <span>Current: $25.00</span>
-                              <Button size="sm">Change</Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">System Status</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between p-4 bg-muted rounded-md">
-                          <div className="flex items-center">
-                            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                            <span>Distribution System</span>
-                          </div>
-                          <Badge variant="outline" className="bg-green-500/10 text-green-500">
-                            Operational
-                          </Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-4 bg-muted rounded-md">
-                          <div className="flex items-center">
-                            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                            <span>Payment Processing</span>
-                          </div>
-                          <Badge variant="outline" className="bg-green-500/10 text-green-500">
-                            Operational
-                          </Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-4 bg-muted rounded-md">
-                          <div className="flex items-center">
-                            <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
-                            <span>Analytics Platform</span>
-                          </div>
-                          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500">
-                            Degraded
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <PlatformSettings />
               </TabsContent>
             </Tabs>
           </div>

@@ -23,6 +23,8 @@ import FAQs from "./pages/FAQs";
 import Support from "./pages/Support";
 import Withdraw from "./pages/Withdraw";
 import Admin from "./pages/Admin";
+import Pricing from "./pages/Pricing";
+import SubscriptionGuard from "./components/SubscriptionGuard";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -40,11 +42,18 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/pricing" element={
+                  <AuthGuard>
+                    <Pricing />
+                  </AuthGuard>
+                } />
                 <Route 
                   path="/dashboard" 
                   element={
                     <AuthGuard>
-                      <Dashboard />
+                      <SubscriptionGuard>
+                        <Dashboard />
+                      </SubscriptionGuard>
                     </AuthGuard>
                   } 
                 />
@@ -52,7 +61,9 @@ function App() {
                   path="/settings" 
                   element={
                     <AuthGuard>
-                      <Settings />
+                      <SubscriptionGuard>
+                        <Settings />
+                      </SubscriptionGuard>
                     </AuthGuard>
                   } 
                 />
@@ -60,7 +71,9 @@ function App() {
                   path="/distribute" 
                   element={
                     <AuthGuard>
-                      <Distribute />
+                      <SubscriptionGuard>
+                        <Distribute />
+                      </SubscriptionGuard>
                     </AuthGuard>
                   } 
                 />
@@ -68,7 +81,9 @@ function App() {
                   path="/withdraw" 
                   element={
                     <AuthGuard>
-                      <Withdraw />
+                      <SubscriptionGuard>
+                        <Withdraw />
+                      </SubscriptionGuard>
                     </AuthGuard>
                   } 
                 />
