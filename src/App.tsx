@@ -42,11 +42,7 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
-                <Route path="/pricing" element={
-                  <AuthGuard>
-                    <Pricing />
-                  </AuthGuard>
-                } />
+                <Route path="/pricing" element={<Pricing />} />
                 <Route 
                   path="/dashboard" 
                   element={

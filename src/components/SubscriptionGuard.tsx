@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SubscriptionGuardProps {
@@ -8,7 +8,8 @@ interface SubscriptionGuardProps {
 }
 
 const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
-  const { hasActiveSubscription, isAdmin } = useAuth();
+  const { hasActiveSubscription, isAdmin, isAuthenticated } = useAuth();
+  const location = useLocation();
 
   // Admin can access everything without a subscription
   if (isAdmin) {
@@ -16,7 +17,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
   }
 
   // Non-admins need an active subscription
-  if (!hasActiveSubscription) {
+  if (isAuthenticated && !hasActiveSubscription) {
     return <Navigate to="/pricing" replace />;
   }
 

@@ -5,11 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Save, Wallet, Music } from 'lucide-react';
+import { Settings, Save, Wallet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const PlatformSettings = () => {
-  const [distributionFee, setDistributionFee] = useState('20.00');
   const [minWithdrawal, setMinWithdrawal] = useState('25.00');
   const [saving, setSaving] = useState(false);
   
@@ -44,45 +43,7 @@ const PlatformSettings = () => {
         </h2>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Music className="h-5 w-5" />
-              Distribution Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="distribution-fee">Distribution Fee (USD)</Label>
-              <div className="flex space-x-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-2.5">$</span>
-                  <Input
-                    id="distribution-fee"
-                    type="number"
-                    className="pl-7"
-                    value={distributionFee}
-                    onChange={(e) => setDistributionFee(e.target.value)}
-                  />
-                </div>
-                <Button onClick={() => {
-                  setDistributionFee('20.00');
-                  toast({
-                    title: "Reset to default",
-                    description: "Distribution fee reset to $20.00",
-                  });
-                }}>
-                  Reset
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Fee charged per music release distribution
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
