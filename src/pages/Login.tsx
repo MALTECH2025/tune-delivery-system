@@ -51,7 +51,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-6">
@@ -111,10 +111,13 @@ const Login = () => {
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <div className="text-sm text-center text-gray-500">
+          <div className="text-sm text-center text-muted-foreground">
             Demo credentials: demo@example.com / password123
           </div>
-          <div className="text-sm text-center text-gray-500">
+          <div className="text-sm text-center text-muted-foreground">
+            Admin demo: admin@example.com / admin123
+          </div>
+          <div className="text-sm text-center text-muted-foreground">
             Don't have an account?{" "}
             <Link to="/signup" className="text-red-600 hover:underline">
               Sign up
