@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +17,11 @@ const formSchema = z.object({
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const from = location.state?.from || '/dashboard';
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -34,7 +36,11 @@ const Login = () => {
     try {
       const success = await login(values.email, values.password);
       if (success) {
-        navigate('/dashboard');
+        if (isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate(from);
+        }
       }
     } finally {
       setLoading(false);

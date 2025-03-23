@@ -1,32 +1,27 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
-// Define types for our user data
 export interface User {
   id: string;
   email: string;
   name: string;
   opayWallet?: string;
-  isAdmin?: boolean; // Added isAdmin property
+  isAdmin?: boolean;
 }
 
-// Define the context type
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  isAdmin: boolean; // Added isAdmin property
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
 }
 
-// Create the context with a default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -35,7 +30,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Mock user data for demo purposes
 const mockUsers = [
   {
     id: '1',
@@ -61,7 +55,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  // Check for logged in user on initialization
   useEffect(() => {
     const storedUser = localStorage.getItem('malpinohdistro_user');
     if (storedUser) {
@@ -72,23 +65,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
-    // This would normally be an API call to your backend
     try {
-      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Find user in mock data
       const foundUser = mockUsers.find(
         u => u.email === email && u.password === password
       );
       
       if (foundUser) {
-        // Create user object without password
         const { password, ...userWithoutPassword } = foundUser;
         
-        // Save to state and localStorage
         setUser(userWithoutPassword);
         setIsAuthenticated(true);
         setIsAdmin(userWithoutPassword.isAdmin || false);
@@ -118,13 +105,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Signup function
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if user exists
       if (mockUsers.some(u => u.email === email)) {
         toast({
           title: "Signup failed",
@@ -134,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      // Create new user
       const newUser = {
         id: Math.random().toString(36).substr(2, 9),
         email,
@@ -143,10 +126,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin: false,
       };
       
-      // In a real app, this would be an API call
-      // mockUsers.push({ ...newUser, password });
-      
-      // Save to state and localStorage
       setUser(newUser);
       setIsAuthenticated(true);
       setIsAdmin(false);
@@ -168,7 +147,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Logout function
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
@@ -182,7 +160,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  // Update user function (for updating profile, OPay wallet, etc.)
   const updateUser = (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
