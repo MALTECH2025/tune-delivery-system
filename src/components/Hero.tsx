@@ -1,8 +1,12 @@
 
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Hero = () => {
+  const { isAuthenticated, isAdmin } = useAuth();
+  
   return (
     <section className="relative flex items-center justify-center min-h-screen bg-gradient-to-b from-black to-gray-900 text-white overflow-hidden">
       {/* Background elements */}
@@ -33,20 +37,23 @@ const Hero = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <a 
-                href="#submit" 
-                className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-3 rounded-md transition-colors flex items-center justify-center sm:justify-start"
-              >
-                Submit Your Music
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
-              
-              <a 
-                href="/dashboard" 
-                className="border border-white/30 hover:bg-white/10 text-white font-medium px-6 py-3 rounded-md transition-colors flex items-center justify-center sm:justify-start"
-              >
-                Artist Dashboard
-              </a>
+              {isAuthenticated ? (
+                <Link 
+                  to={isAdmin ? "/admin" : "/dashboard"}
+                  className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-3 rounded-md transition-colors flex items-center justify-center sm:justify-start"
+                >
+                  {isAdmin ? "Admin Dashboard" : "Artist Dashboard"}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              ) : (
+                <Link 
+                  to="/signup" 
+                  className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-3 rounded-md transition-colors flex items-center justify-center sm:justify-start"
+                >
+                  Get Started
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              )}
             </div>
           </div>
           

@@ -16,7 +16,8 @@ import {
   User, 
   CircleCheck, 
   CircleX, 
-  Wallet 
+  Wallet, 
+  DollarSign
 } from 'lucide-react';
 import { 
   Pagination, 
@@ -42,6 +43,7 @@ const mockUsers = [
 const UsersList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [userEarnings, setUserEarnings] = useState<number>(0);
   
   const filteredUsers = mockUsers.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -52,6 +54,13 @@ const UsersList = () => {
     toast({
       title: "User action",
       description: `${action} action performed on user ID: ${userId}`,
+    });
+  };
+
+  const handleUpdateEarnings = (userId: string) => {
+    toast({
+      title: "Earnings updated",
+      description: `Earnings updated to $${userEarnings.toFixed(2)} for user ID: ${userId}`,
     });
   };
   
@@ -135,7 +144,10 @@ const UsersList = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => setSelectedUser(user)}
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setUserEarnings(user.earnings);
+                          }}
                         >
                           <UserCog className="h-4 w-4 mr-1" />
                           Manage
@@ -156,7 +168,24 @@ const UsersList = () => {
                           </div>
                           <div className="grid grid-cols-4 items-center gap-4">
                             <div className="font-medium">Earnings:</div>
-                            <div className="col-span-3">${selectedUser?.earnings.toFixed(2)}</div>
+                            <div className="col-span-3 flex items-center">
+                              <Input 
+                                type="number"
+                                value={userEarnings}
+                                onChange={(e) => setUserEarnings(parseFloat(e.target.value) || 0)}
+                                className="max-w-[150px] mr-2"
+                                step="0.01"
+                                min="0"
+                              />
+                              <Button 
+                                size="sm"
+                                onClick={() => handleUpdateEarnings(selectedUser?.id)}
+                                className="flex items-center gap-1"
+                              >
+                                <DollarSign className="h-3 w-3" />
+                                Update
+                              </Button>
+                            </div>
                           </div>
                           <div className="grid grid-cols-4 items-center gap-4">
                             <div className="font-medium">Status:</div>

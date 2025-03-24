@@ -1,12 +1,9 @@
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import NavigationBar from '@/components/NavigationBar';
 import Hero from '@/components/Hero';
-import SubmissionForm from '@/components/SubmissionForm';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowRight, Music, Award, BarChart, Users, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Music, Award, BarChart2, Users } from 'lucide-react';
 
 // Feature card component
 const FeatureCard = ({ icon, title, description, delay }) => {
@@ -55,40 +52,8 @@ const Testimonial = ({ quote, author, position }) => {
   );
 };
 
-// Pricing tier component
-const PricingTier = ({ name, price, features, recommended = false }) => {
-  return (
-    <div className={`bg-card rounded-xl shadow-md border ${recommended ? 'border-red-500' : 'border-border'} relative overflow-hidden`}>
-      {recommended && (
-        <div className="absolute top-0 right-0 bg-red-600 text-white px-4 py-1 text-xs font-medium">
-          RECOMMENDED
-        </div>
-      )}
-      <div className="p-8">
-        <h3 className="text-xl font-bold mb-2">{name}</h3>
-        <div className="mb-4">
-          <span className="text-3xl font-bold">${price}</span>
-          <span className="text-muted-foreground ml-1">/month</span>
-        </div>
-        <div className="space-y-3 mb-6">
-          {features.map((feature, index) => (
-            <div key={index} className="flex items-start">
-              <Check className="text-green-500 h-5 w-5 mr-2 mt-0.5" />
-              <span>{feature}</span>
-            </div>
-          ))}
-        </div>
-        <Button className={`w-full ${recommended ? 'bg-red-600 hover:bg-red-700' : ''}`}>
-          Choose Plan
-        </Button>
-      </div>
-    </div>
-  );
-};
-
 const Index = () => {
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   
   // Add scroll reveal effect
   useEffect(() => {
@@ -153,7 +118,7 @@ const Index = () => {
             <StatsCard 
               title="Monthly Streams" 
               value="10M+" 
-              icon={<BarChart className="text-red-600 w-6 h-6" />}
+              icon={<BarChart2 className="text-red-600 w-6 h-6" />}
             />
           </div>
         </div>
@@ -164,7 +129,7 @@ const Index = () => {
         <div className="container px-4 mx-auto max-w-screen-xl">
           <div className="max-w-3xl mx-auto text-center mb-16 reveal opacity-0 translate-y-10 transition-all duration-1000">
             <span className="px-3 py-1 text-xs font-medium tracking-wider text-primary uppercase bg-primary/10 rounded-full inline-block mb-6">
-              Our Process
+              About MALPINOHDistro
             </span>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Simple. Transparent. Artist-Friendly.</h2>
             <p className="text-xl text-muted-foreground">
@@ -188,7 +153,7 @@ const Index = () => {
             />
             
             <FeatureCard 
-              icon={<BarChart className="w-6 h-6" />}
+              icon={<BarChart2 className="w-6 h-6" />}
               title="Detailed Analytics" 
               description="Track your performance with comprehensive analytics and royalty reporting."
               delay={300}
@@ -197,67 +162,8 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-muted/30">
-        <div className="container px-4 mx-auto max-w-screen-xl">
-          <div className="max-w-3xl mx-auto text-center mb-16 reveal opacity-0 translate-y-10 transition-all duration-1000">
-            <span className="px-3 py-1 text-xs font-medium tracking-wider text-primary uppercase bg-primary/10 rounded-full inline-block mb-6">
-              Pricing Plans
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Choose Your Plan</h2>
-            <p className="text-xl text-muted-foreground">
-              Affordable subscription options designed for independent artists at every stage of their career.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 reveal opacity-0 translate-y-10 transition-all duration-1000">
-            <PricingTier 
-              name="Monthly" 
-              price="12.99" 
-              features={[
-                "Unlimited releases",
-                "Access to all platforms",
-                "Basic analytics",
-                "24/7 support",
-                "Keep 100% of your rights"
-              ]} 
-            />
-            
-            <PricingTier 
-              name="Quarterly" 
-              price="15.00" 
-              features={[
-                "Everything in Monthly",
-                "Advanced analytics",
-                "Faster release turnaround",
-                "Professional mixing tips",
-                "Priority support"
-              ]} 
-              recommended={true}
-            />
-            
-            <PricingTier 
-              name="Yearly" 
-              price="22.58" 
-              features={[
-                "Everything in Quarterly",
-                "Premium analytics dashboard",
-                "Marketing consultation",
-                "Playlist pitching assistance",
-                "Dedicated account manager"
-              ]} 
-            />
-          </div>
-          
-          <div className="max-w-3xl mx-auto text-center mt-10 text-sm text-muted-foreground">
-            <p>*All prices are in USD. Local currency conversion rates are applied at checkout.</p>
-            <p className="mt-1">*Payment is made to OpayWallet: Account #8168940582, Account Name: Abdulkadir Ibrahim Oluwashina</p>
-          </div>
-        </div>
-      </section>
-      
       {/* Testimonials Section */}
-      <section className="py-24 bg-background">
+      <section className="py-24 bg-muted/30">
         <div className="container px-4 mx-auto max-w-screen-xl">
           <div className="max-w-3xl mx-auto text-center mb-16 reveal opacity-0 translate-y-10 transition-all duration-1000">
             <span className="px-3 py-1 text-xs font-medium tracking-wider text-primary uppercase bg-primary/10 rounded-full inline-block mb-6">
@@ -285,35 +191,6 @@ const Index = () => {
               author="Michael Brown"
               position="Producer"
             />
-          </div>
-        </div>
-      </section>
-      
-      {/* CTA Section */}
-      <section className="py-24 bg-muted/30">
-        <div className="container px-4 mx-auto max-w-screen-xl">
-          <div className="max-w-3xl mx-auto text-center reveal opacity-0 translate-y-10 transition-all duration-1000">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Share Your Music?</h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Join thousands of artists who trust MALPINOHDistro for their music distribution needs.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button 
-                size="lg" 
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={() => navigate('/signup')}
-              >
-                Get Started
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                onClick={() => navigate('/login')}
-              >
-                Login
-              </Button>
-            </div>
           </div>
         </div>
       </section>
@@ -353,10 +230,9 @@ const Index = () => {
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Company</h3>
               <ul className="space-y-3">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">About Us</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Our Team</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Careers</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Contact</a></li>
+                <li><a href="#features" className="text-gray-400 hover:text-white transition-colors text-sm">About Us</a></li>
+                <li><a href="/pricing" className="text-gray-400 hover:text-white transition-colors text-sm">Pricing</a></li>
+                <li><a href="/support" className="text-gray-400 hover:text-white transition-colors text-sm">Contact</a></li>
               </ul>
             </div>
             
@@ -366,7 +242,6 @@ const Index = () => {
                 <li><a href="/faqs" className="text-gray-400 hover:text-white transition-colors text-sm">FAQs</a></li>
                 <li><a href="/support" className="text-gray-400 hover:text-white transition-colors text-sm">Support</a></li>
                 <li><a href="/pricing" className="text-gray-400 hover:text-white transition-colors text-sm">Pricing</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Blog</a></li>
               </ul>
             </div>
             
