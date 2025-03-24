@@ -15,7 +15,8 @@ import {
   CheckCircle,
   Bell,
   FileText,
-  BadgePercent
+  BadgePercent,
+  Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,7 @@ import AdminDashboard from '@/components/admin/AdminDashboard';
 import SubscriptionManagement from '@/components/admin/SubscriptionManagement';
 import PlatformSettings from '@/components/admin/PlatformSettings';
 import DistributionFiles from '@/components/admin/DistributionFiles';
+import EmailTesting from '@/components/admin/EmailTesting';
 
 const Admin = () => {
   const { isAdmin, logout } = useAuth();
@@ -138,6 +140,14 @@ const Admin = () => {
                   Subscriptions
                 </Button>
                 <Button 
+                  variant={activeTab === 'emails' ? "default" : "ghost"} 
+                  className="w-full justify-start" 
+                  onClick={() => setActiveTab('emails')}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Emails
+                </Button>
+                <Button 
                   variant={activeTab === 'settings' ? "default" : "ghost"} 
                   className="w-full justify-start" 
                   onClick={() => setActiveTab('settings')}
@@ -213,7 +223,7 @@ const Admin = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
               {/* Desktop TabsList - hidden on mobile */}
               <div className="bg-card p-1 rounded-lg shadow-sm border border-border hidden md:block">
-                <TabsList className="w-full grid grid-cols-7">
+                <TabsList className="w-full grid grid-cols-8">
                   <TabsTrigger value="dashboard" className="py-3">
                     <LayoutDashboard className="h-4 w-4 mr-2" />
                     Dashboard
@@ -237,6 +247,10 @@ const Admin = () => {
                   <TabsTrigger value="subscriptions" className="py-3">
                     <BadgePercent className="h-4 w-4 mr-2" />
                     Subscriptions
+                  </TabsTrigger>
+                  <TabsTrigger value="emails" className="py-3">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Emails
                   </TabsTrigger>
                   <TabsTrigger value="settings" className="py-3">
                     <Settings className="h-4 w-4 mr-2" />
@@ -267,6 +281,10 @@ const Admin = () => {
               
               <TabsContent value="subscriptions">
                 <SubscriptionManagement />
+              </TabsContent>
+              
+              <TabsContent value="emails">
+                <EmailTesting />
               </TabsContent>
               
               <TabsContent value="settings">

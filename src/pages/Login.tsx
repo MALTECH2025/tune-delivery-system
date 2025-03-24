@@ -38,10 +38,13 @@ const Login = () => {
       const success = await login(values.email, values.password);
       if (success) {
         if (isAdmin) {
+          // Always redirect admins to the admin dashboard
           navigate('/admin');
         } else if (!hasActiveSubscription) {
+          // Redirect regular users without subscription to pricing
           navigate('/pricing');
         } else {
+          // Regular users with subscription go to the requested page or dashboard
           navigate(from);
         }
       }

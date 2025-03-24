@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { sendEmail } from '@/utils/emailService';
 
 export interface User {
   id: string;
@@ -160,9 +161,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setHasActiveSubscription(false);
       localStorage.setItem('malpinohdistro_user', JSON.stringify(newUser));
       
+      // Send welcome email
+      await sendEmail({
+        to: email,
+        templateType: 'welcome',
+        templateData: { 
+          name: name 
+        }
+      });
+      
       toast({
         title: "Signup successful",
-        description: `Welcome, ${name}!`,
+        description: `Welcome, ${name}! We've sent you a welcome email.`,
       });
       
       return true;
