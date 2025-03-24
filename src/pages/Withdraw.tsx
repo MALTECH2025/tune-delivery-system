@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { getUserBalance, getWithdrawalHistory, submitWithdrawalRequest } from "@/utils/withdrawalService";
 
 const Withdraw = () => {
   const { isAuthenticated, user } = useAuth();
@@ -35,64 +34,43 @@ const Withdraw = () => {
     enabled: !!user?.id,
   });
   
-  // Fetch user balance
+  // Fetch user balance and withdrawal history
   const { data: balanceData, isLoading: balanceLoading, refetch: refetchBalance } = useQuery({
     queryKey: ['balance', user?.id],
     queryFn: async () => {
       if (!user?.id) return { balance: 0, withdrawals: [] };
       
       // Get available balance
-      const { data: balance, error: balanceError } = await supabase.rpc(
-        'get_user_available_balance',
-        { user_uuid: user.id }
-      );
-      
-      if (balanceError) throw balanceError;
+      const balance = await getUserBalance(user.id);
       
       // Get withdrawal history
-      const { data: withdrawals, error: withdrawalsError } = await supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('requested_at', { ascending: false })
-        .limit(5);
+      const withdrawals = await getWithdrawalHistory(user.id, 5);
       
-      if (withdrawalsError) throw withdrawalsError;
-      
-      return { 
-        balance: parseFloat(balance) || 0,
-        withdrawals: withdrawals || []
-      };
+      return { balance, withdrawals };
     },
     enabled: !!user?.id,
   });
   
   // Handle withdrawal submission
   const withdrawalMutation = useMutation({
-    mutationFn: async (amount: number) => {
+    mutationFn: async (withdrawAmount: number) => {
       setIsSubmitting(true);
       
-      // Call the edge function to process withdrawal
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-withdrawal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
-        },
-        body: JSON.stringify({
-          amount,
-          userId: user?.id,
-          walletAddress: profile?.opay_wallet || 'Wallet not specified'
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process withdrawal');
+      if (!user?.id) {
+        throw new Error('User not authenticated');
       }
       
-      return data;
+      const success = await submitWithdrawalRequest({
+        amount: withdrawAmount,
+        userId: user.id,
+        walletAddress: profile?.opay_wallet || 'Wallet not specified'
+      });
+      
+      if (!success) {
+        throw new Error('Failed to process withdrawal');
+      }
+      
+      return { success };
     },
     onSuccess: () => {
       toast({
