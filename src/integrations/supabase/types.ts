@@ -9,13 +9,220 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          earned_date: string
+          id: string
+          release_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          earned_date?: string
+          id?: string
+          release_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          earned_date?: string
+          id?: string
+          release_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earnings_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          admin: boolean | null
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          opay_wallet: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin?: boolean | null
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          opay_wallet?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin?: boolean | null
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          opay_wallet?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      releases: {
+        Row: {
+          artist_name: string
+          artwork_url: string
+          audio_url: string
+          created_at: string
+          description: string | null
+          genre: string
+          id: string
+          release_date: string
+          status: string
+          track_title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          artist_name: string
+          artwork_url: string
+          audio_url: string
+          created_at?: string
+          description?: string | null
+          genre: string
+          id?: string
+          release_date: string
+          status: string
+          track_title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          artist_name?: string
+          artwork_url?: string
+          audio_url?: string
+          created_at?: string
+          description?: string | null
+          genre?: string
+          id?: string
+          release_date?: string
+          status?: string
+          track_title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          created_at: string
+          end_date: string
+          id: string
+          plan: string
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          end_date: string
+          id?: string
+          plan: string
+          start_date?: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          end_date?: string
+          id?: string
+          plan?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          processed_at: string | null
+          requested_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          wallet: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          requested_at?: string
+          status: string
+          updated_at?: string
+          user_id: string
+          wallet: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wallet?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_available_balance: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: number
+      }
+      get_user_total_earnings: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: number
+      }
+      get_user_total_withdrawn: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

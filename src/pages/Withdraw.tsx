@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,23 +7,120 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Wallet, AlertCircle } from 'lucide-react';
+import { Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 const Withdraw = () => {
   const { isAuthenticated, user } = useAuth();
   const [amount, setAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate(); // Add navigate hook
+  const navigate = useNavigate();
   
-  // Mocked balance data (would come from API in production)
-  const balance = 125.42;
-  const minWithdrawal = 25;
+  // Fetch user profile to get wallet info
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Fetch user balance
+  const { data: balanceData, isLoading: balanceLoading, refetch: refetchBalance } = useQuery({
+    queryKey: ['balance', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { balance: 0, withdrawals: [] };
+      
+      // Get available balance
+      const { data: balance, error: balanceError } = await supabase.rpc(
+        'get_user_available_balance',
+        { user_uuid: user.id }
+      );
+      
+      if (balanceError) throw balanceError;
+      
+      // Get withdrawal history
+      const { data: withdrawals, error: withdrawalsError } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('requested_at', { ascending: false })
+        .limit(5);
+      
+      if (withdrawalsError) throw withdrawalsError;
+      
+      return { 
+        balance: parseFloat(balance) || 0,
+        withdrawals: withdrawals || []
+      };
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Handle withdrawal submission
+  const withdrawalMutation = useMutation({
+    mutationFn: async (amount: number) => {
+      setIsSubmitting(true);
+      
+      // Call the edge function to process withdrawal
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-withdrawal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`
+        },
+        body: JSON.stringify({
+          amount,
+          userId: user?.id,
+          walletAddress: profile?.opay_wallet || 'Wallet not specified'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process withdrawal');
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Withdrawal requested",
+        description: `$${parseFloat(amount).toFixed(2)} will be sent to your OPay wallet within 1-3 business days.`,
+      });
+      setAmount('');
+      refetchBalance();
+      setIsSubmitting(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Withdrawal failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+    }
+  });
   
   // Redirect if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
+  
+  // Calculate minimum withdrawal amount
+  const minWithdrawal = 25;
+  const balance = balanceData?.balance || 0;
   
   const handleWithdraw = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,21 +154,38 @@ const Withdraw = () => {
       return;
     }
     
-    // Process withdrawal
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+    // Check if wallet is set up
+    if (!profile?.opay_wallet) {
       toast({
-        title: "Withdrawal requested",
-        description: `$${withdrawAmount.toFixed(2)} will be sent to your OPay wallet within 1-3 business days.`,
+        title: "Wallet not set up",
+        description: "Please set up your OPay wallet in settings before withdrawing",
+        variant: "destructive",
       });
-      setAmount('');
-      setIsSubmitting(false);
-      
-      // Redirect to dashboard after successful withdrawal
-      navigate('/dashboard');
-    }, 1500);
+      return;
+    }
+    
+    // Process withdrawal
+    withdrawalMutation.mutate(withdrawAmount);
+  };
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+  
+  // Get status badge class
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+      default:
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
+    }
   };
   
   return (
@@ -97,7 +211,8 @@ const Withdraw = () => {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Important</AlertTitle>
                 <AlertDescription>
-                  The minimum withdrawal amount is ${minWithdrawal}. Ensure your OPay wallet is correctly linked in your settings.
+                  The minimum withdrawal amount is ${minWithdrawal}. 
+                  {!profile?.opay_wallet && " Please set up your OPay wallet in your settings first."}
                 </AlertDescription>
               </Alert>
               
@@ -123,10 +238,10 @@ const Withdraw = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="wallet">Destination</Label>
+                    <Label htmlFor="wallet">Destination Wallet</Label>
                     <Input
                       id="wallet"
-                      value="OPay Wallet (linked)"
+                      value={profile?.opay_wallet || "No wallet connected (Set up in Settings)"}
                       disabled
                     />
                   </div>
@@ -135,7 +250,7 @@ const Withdraw = () => {
                 <Button
                   type="submit"
                   className="w-full mt-6 bg-red-600 hover:bg-red-700"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !profile?.opay_wallet || balanceLoading}
                 >
                   {isSubmitting ? "Processing..." : "Withdraw Funds"}
                 </Button>
@@ -145,12 +260,24 @@ const Withdraw = () => {
           
           <div className="space-y-6">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle>Available Balance</CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => refetchBalance()} 
+                  title="Refresh balance"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <span className="text-3xl font-bold">${balance.toFixed(2)}</span>
+                  {balanceLoading ? (
+                    <div className="animate-pulse h-9 w-28 bg-muted rounded"></div>
+                  ) : (
+                    <span className="text-3xl font-bold">${balance.toFixed(2)}</span>
+                  )}
                   <Wallet className="h-8 w-8 text-muted-foreground" />
                 </div>
               </CardContent>
@@ -161,28 +288,34 @@ const Withdraw = () => {
                 <CardTitle>Withdrawal History</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="px-6 py-4 border-b border-border">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">$85.50</p>
-                      <p className="text-sm text-muted-foreground">April 15, 2024</p>
-                    </div>
-                    <span className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 px-2 py-1 rounded-full text-xs">Completed</span>
+                {balanceLoading ? (
+                  <div className="space-y-4 p-6">
+                    <div className="animate-pulse h-12 bg-muted rounded"></div>
+                    <div className="animate-pulse h-12 bg-muted rounded"></div>
                   </div>
-                </div>
-                <div className="px-6 py-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">$42.25</p>
-                      <p className="text-sm text-muted-foreground">March 02, 2024</p>
-                    </div>
-                    <span className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 px-2 py-1 rounded-full text-xs">Completed</span>
+                ) : balanceData?.withdrawals.length === 0 ? (
+                  <div className="px-6 py-8 text-center text-muted-foreground">
+                    No withdrawal history found
                   </div>
-                </div>
+                ) : (
+                  balanceData?.withdrawals.map((withdrawal, index) => (
+                    <div key={withdrawal.id} className={`px-6 py-4 ${index !== balanceData.withdrawals.length - 1 ? 'border-b border-border' : ''}`}>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">${withdrawal.amount.toFixed(2)}</p>
+                          <p className="text-sm text-muted-foreground">{formatDate(withdrawal.requested_at)}</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadge(withdrawal.status)}`}>
+                          {withdrawal.status.charAt(0).toUpperCase() + withdrawal.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </CardContent>
               <CardFooter className="border-t border-border">
-                <Button variant="outline" className="w-full" size="sm">
-                  View All Transactions
+                <Button variant="outline" className="w-full" size="sm" onClick={() => navigate('/dashboard')}>
+                  Back to Dashboard
                 </Button>
               </CardFooter>
             </Card>
