@@ -18,25 +18,25 @@ const EmailTesting = () => {
   
   const templateTypes: TemplateType[] = [
     'welcome',
-    'resetPassword',
-    'distributionApproved',
-    'distributionRejected',
-    'paymentReceived',
-    'withdrawalProcessed',
-    'subscriptionConfirmation',
-    'subscriptionExpiring',
+    'reset-password',
+    'distribution-approved',
+    'distribution-rejected',
+    'payment-received',
+    'withdrawal-processed',
+    'subscription-confirmation',
+    'subscription-expiring',
   ];
   
   // Sample data for templates
-  const sampleData = {
-    welcome: { name: 'John Doe' },
-    resetPassword: { resetLink: 'https://example.com/reset-password?token=123456' },
-    distributionApproved: { name: 'John Doe', releaseName: 'Summer Vibes' },
-    distributionRejected: { name: 'John Doe', releaseName: 'Summer Vibes', reason: 'Low quality artwork' },
-    paymentReceived: { name: 'John Doe', amount: 125.50, currentBalance: 325.75 },
-    withdrawalProcessed: { name: 'John Doe', amount: 200, method: 'Bank Transfer', transactionId: 'TX123456789' },
-    subscriptionConfirmation: { name: 'John Doe', plan: 'Yearly', amount: 99.99, nextBillingDate: '2025-04-01' },
-    subscriptionExpiring: { name: 'John Doe', expiryDate: '2024-04-30' },
+  const sampleData: Record<string, Record<string, string | number>> = {
+    'welcome': { name: 'John Doe' },
+    'reset-password': { resetLink: 'https://example.com/reset-password?token=123456' },
+    'distribution-approved': { name: 'John Doe', releaseName: 'Summer Vibes' },
+    'distribution-rejected': { name: 'John Doe', releaseName: 'Summer Vibes', reason: 'Low quality artwork' },
+    'payment-received': { name: 'John Doe', amount: 125.50, currentBalance: 325.75 },
+    'withdrawal-processed': { name: 'John Doe', amount: 200, method: 'Bank Transfer', transactionId: 'TX123456789' },
+    'subscription-confirmation': { name: 'John Doe', plan: 'Yearly', amount: 99.99, nextBillingDate: '2025-04-01' },
+    'subscription-expiring': { name: 'John Doe', expiryDate: '2024-04-30' },
   };
   
   const previewTemplate = () => {
@@ -125,7 +125,7 @@ const EmailTesting = () => {
                 <SelectContent>
                   {templateTypes.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1).replace(/([A-Z])/g, ' $1')}
+                      {type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                     </SelectItem>
                   ))}
                 </SelectContent>

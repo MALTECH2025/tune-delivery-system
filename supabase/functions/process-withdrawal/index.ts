@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { sendEmail } from "https://esm.sh/v135/@supabase/functions-js/utils/send-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -138,14 +137,26 @@ serve(async (req) => {
 
     // Send email notification to admin
     try {
-      await sendEmail({
-        to: 'admin@malpinohdistro.com',
-        subject: 'New Withdrawal Request',
-        body: `User ${profile.name} (${profile.email}) has requested a withdrawal of $${numAmount} to wallet ${walletAddress}`,
-      });
+      // Instead of using the imported sendEmail function which is causing issues,
+      // we'll send an email notification through our database for admin to check
+      await supabase
+        .from("admin_notifications")
+        .insert({
+          type: "withdrawal_request",
+          message: `User ${profile.name} (${profile.email}) has requested a withdrawal of $${numAmount} to wallet ${walletAddress}`,
+          data: {
+            userId,
+            amount: numAmount,
+            walletAddress,
+            withdrawalId: withdrawal.id
+          }
+        })
+        .catch(err => console.error("Could not create admin notification:", err));
+      
+      console.log("Admin notification created for withdrawal request");
     } catch (emailError) {
-      console.error("Error sending email notification:", emailError);
-      // Continue processing even if email fails
+      console.error("Error sending notification:", emailError);
+      // Continue processing even if notification fails
     }
 
     // Send confirmation to the client

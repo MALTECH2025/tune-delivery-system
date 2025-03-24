@@ -41,7 +41,7 @@ export const submitWithdrawalRequest = async (request: WithdrawalRequest): Promi
     if (profile) {
       await sendEmail({
         to: profile.email,
-        templateType: 'welcome', // Using welcome template as fallback since 'withdrawal' isn't a defined type
+        templateType: 'withdrawal',
         templateData: {
           name: profile.name,
           amount: request.amount.toFixed(2),

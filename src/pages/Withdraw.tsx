@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +11,7 @@ import { Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getUserBalance, getWithdrawalHistory, submitWithdrawalRequest } from "@/utils/withdrawalService";
+import { supabase } from "@/integrations/supabase/client";
 
 const Withdraw = () => {
   const { isAuthenticated, user } = useAuth();
