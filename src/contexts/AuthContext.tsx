@@ -36,7 +36,7 @@ export const useAuth = () => {
   return context;
 };
 
-// Mock users for development
+// Mock users for development - only used when Supabase auth fails
 const mockUsers = [
   {
     id: '1',
@@ -150,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       // For mock users during development
-      if (email === 'demo@example.com' || email === 'admin@example.com') {
+      if (process.env.NODE_ENV === 'development' && (email === 'demo@example.com' || email === 'admin@example.com')) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const foundUser = mockUsers.find(
@@ -198,6 +198,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
+      toast({
+        title: "Login successful",
+        description: `Welcome back!`,
+      });
+      
       return true;
     } catch (error: any) {
       toast({
@@ -229,6 +234,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           variant: "destructive",
         });
         return false;
+      }
+      
+      // Now let's create a profile in the profiles table directly (belt and suspenders)
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            email: email,
+            name: name,
+            admin: false
+          });
+          
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+        }
       }
       
       toast({

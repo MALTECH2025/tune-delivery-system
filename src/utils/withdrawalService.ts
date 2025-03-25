@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { sendEmail } from "./emailService";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Interface for withdrawal requests
@@ -17,38 +17,58 @@ export interface WithdrawalRequest {
  */
 export const submitWithdrawalRequest = async (request: WithdrawalRequest): Promise<boolean> => {
   try {
-    // Call the withdrawal edge function
-    const { data, error } = await supabase.functions.invoke('process-withdrawal', {
-      body: {
+    // Insert withdrawal request to database
+    const { data, error } = await supabase
+      .from('withdrawals')
+      .insert({
+        user_id: request.userId,
         amount: request.amount,
-        userId: request.userId,
-        walletAddress: request.walletAddress
-      }
-    });
+        wallet: request.walletAddress,
+        status: 'pending'
+      })
+      .select()
+      .single();
     
     if (error) {
       console.error('Withdrawal request failed:', error);
       return false;
     }
     
-    // Send a confirmation email to the user
-    const { data: profile } = await supabase
+    // Create a notification for the user
+    await supabase
+      .from('notifications')
+      .insert({
+        user_id: request.userId,
+        message: `Your withdrawal request for $${request.amount.toFixed(2)} has been submitted`,
+        type: 'withdrawal'
+      });
+    
+    // Also create a notification for admin users
+    const { data: profileData } = await supabase
       .from('profiles')
-      .select('email, name')
+      .select('name')
       .eq('id', request.userId)
       .single();
       
-    if (profile) {
-      await sendEmail({
-        to: profile.email,
-        templateType: 'withdrawal',
-        templateData: {
-          name: profile.name,
-          amount: request.amount.toFixed(2),
-          date: new Date().toLocaleDateString(),
-          wallet: request.walletAddress
-        }
-      });
+    if (profileData) {
+      // Get all admin user IDs
+      const { data: adminData } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('admin', true);
+      
+      // Create notifications for each admin
+      if (adminData && adminData.length > 0) {
+        const adminNotifications = adminData.map(admin => ({
+          user_id: admin.id,
+          message: `New withdrawal request: $${request.amount.toFixed(2)} from ${profileData.name}`,
+          type: 'admin'
+        }));
+        
+        await supabase
+          .from('notifications')
+          .insert(adminNotifications);
+      }
     }
     
     return true;
@@ -85,21 +105,18 @@ export const getUserBalance = async (userId: string): Promise<number> => {
  */
 export const getMinWithdrawalAmount = async (): Promise<number> => {
   try {
-    // Use type assertion to bypass the type checking for the settings table
-    // that's not yet recognized in the TypeScript definitions
-    const result = await (supabase as any)
+    const { data, error } = await supabase
       .from('settings')
       .select('value')
       .eq('key', 'min_withdrawal')
       .single();
       
-    if (result.error) {
-      console.error('Error fetching minimum withdrawal amount:', result.error);
+    if (error) {
+      console.error('Error fetching minimum withdrawal amount:', error);
       return 25; // Default minimum withdrawal amount
     }
     
-    const settingsData = result.data;
-    return settingsData && settingsData.value ? parseFloat(JSON.parse(settingsData.value)) : 25;
+    return data && data.value ? parseFloat(data.value.toString()) : 25;
   } catch (error) {
     console.error('Error in getMinWithdrawalAmount:', error);
     return 25; // Default minimum withdrawal amount

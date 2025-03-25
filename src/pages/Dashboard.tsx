@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, 
   TableHeader, 
@@ -20,42 +20,79 @@ import UserMenu from "@/components/UserMenu";
 import { Navigate, Link } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import { useQuery } from "@tanstack/react-query";
+import { getUserCatalog, getEarningsHistory, getUserStats } from "@/services/dashboardService";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("catalog");
   const { isAuthenticated, user } = useAuth();
   const { theme } = useTheme();
   
+  // Fetch user catalog data
+  const { data: catalogData = [], isLoading: catalogLoading } = useQuery({
+    queryKey: ['userCatalog', user?.id],
+    queryFn: () => getUserCatalog(user?.id || ''),
+    enabled: !!user?.id && isAuthenticated,
+  });
+  
+  // Fetch earnings history
+  const { data: earningsData = [], isLoading: earningsLoading } = useQuery({
+    queryKey: ['earningsHistory', user?.id],
+    queryFn: () => getEarningsHistory(user?.id || ''),
+    enabled: !!user?.id && isAuthenticated,
+  });
+  
+  // Fetch user stats
+  const { data: userStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['userStats', user?.id],
+    queryFn: () => getUserStats(user?.id || ''),
+    enabled: !!user?.id && isAuthenticated,
+  });
+  
+  // Calculate totals
+  const totalStreams = userStats?.totalStreams || 0;
+  const totalEarnings = userStats?.totalEarnings || 0;
+  
+  // Format next payout date
+  const nextPayoutDate = userStats?.nextPayoutDate 
+    ? new Date(userStats.nextPayoutDate).toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      })
+    : 'Not scheduled';
+  
+  // Handle download report
+  const handleDownloadReport = () => {
+    // Generate CSV content
+    const headers = ['Period', 'Earnings', 'Status', 'Payment Date'];
+    const csvContent = earningsData.map(earning => 
+      [earning.period, earning.earnings.toFixed(2), earning.status, earning.date].join(',')
+    );
+    
+    const csv = [headers.join(','), ...csvContent].join('\n');
+    
+    // Create a download link
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `earnings_report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Report Downloaded",
+      description: "Your earnings report has been downloaded.",
+    });
+  };
+  
   // Redirect if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
-  
-  // Mock data
-  const catalogData = [
-    { id: 1, title: "Summer Vibes", released: "2023-06-15", streams: 145862, platforms: "Spotify, Apple Music, YouTube" },
-    { id: 2, title: "Midnight Dreams", released: "2023-08-01", streams: 87231, platforms: "Spotify, Apple Music, Amazon" },
-    { id: 3, title: "Urban Flow", released: "2023-10-10", streams: 53982, platforms: "Spotify, SoundCloud, YouTube" },
-    { id: 4, title: "Echoes of Yesterday", released: "2024-01-05", streams: 28754, platforms: "All Platforms" },
-    { id: 5, title: "Crystal Clear", released: "2024-03-20", streams: 12983, platforms: "Spotify, Apple Music, TikTok" },
-  ];
-  
-  const earningsData = [
-    { period: "January 2024", earnings: 345.78, status: "Paid", date: "2024-02-15" },
-    { period: "February 2024", earnings: 412.56, status: "Paid", date: "2024-03-15" },
-    { period: "March 2024", earnings: 378.92, status: "Processing", date: "Pending" },
-    { period: "April 2024", earnings: 401.23, status: "Pending", date: "Scheduled for 2024-05-15" },
-  ];
-  
-  const totalStreams = catalogData.reduce((sum, item) => sum + item.streams, 0);
-  const totalEarnings = earningsData.reduce((sum, item) => sum + item.earnings, 0);
-
-  const handleDownloadReport = () => {
-    toast({
-      title: "Report Download Started",
-      description: "Your earnings report will be downloaded shortly.",
-    });
-  };
   
   return (
     <div className="min-h-screen bg-background">
@@ -107,7 +144,11 @@ const Dashboard = () => {
                 <h3 className="text-lg font-medium text-card-foreground">Total Streams</h3>
                 <Music className="h-5 w-5 text-red-500" />
               </div>
-              <p className="text-3xl font-bold">{totalStreams.toLocaleString()}</p>
+              {statsLoading ? (
+                <div className="animate-pulse h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              ) : (
+                <p className="text-3xl font-bold">{totalStreams.toLocaleString()}</p>
+              )}
               <p className="text-sm text-muted-foreground mt-2">Across all platforms</p>
             </CardContent>
           </Card>
@@ -118,7 +159,11 @@ const Dashboard = () => {
                 <h3 className="text-lg font-medium text-card-foreground">Total Earnings</h3>
                 <DollarSign className="h-5 w-5 text-green-500" />
               </div>
-              <p className="text-3xl font-bold">${totalEarnings.toFixed(2)}</p>
+              {statsLoading ? (
+                <div className="animate-pulse h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              ) : (
+                <p className="text-3xl font-bold">${totalEarnings.toFixed(2)}</p>
+              )}
               <p className="text-sm text-muted-foreground mt-2">Year to date</p>
             </CardContent>
           </Card>
@@ -129,8 +174,23 @@ const Dashboard = () => {
                 <h3 className="text-lg font-medium text-card-foreground">Next Payment</h3>
                 <Calendar className="h-5 w-5 text-blue-500" />
               </div>
-              <p className="text-3xl font-bold">${earningsData.find(item => item.status === "Pending")?.earnings.toFixed(2) || "0.00"}</p>
-              <p className="text-sm text-muted-foreground mt-2">Scheduled for May 15, 2024</p>
+              {statsLoading ? (
+                <div className="animate-pulse h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              ) : (
+                <p className="text-3xl font-bold">
+                  {earningsData.find(item => item.status === "Pending") 
+                    ? `$${earningsData.find(item => item.status === "Pending")?.earnings.toFixed(2) || "0.00"}`
+                    : "$0.00"
+                  }
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground mt-2">
+                {statsLoading ? (
+                  <div className="animate-pulse h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded mt-1"></div>
+                ) : (
+                  `Scheduled for ${nextPayoutDate}`
+                )}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -157,26 +217,53 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Release Date</TableHead>
-                      <TableHead>Streams</TableHead>
-                      <TableHead>Platforms</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {catalogData.map((release) => (
-                      <TableRow key={release.id}>
-                        <TableCell className="font-medium">{release.title}</TableCell>
-                        <TableCell>{new Date(release.released).toLocaleDateString()}</TableCell>
-                        <TableCell>{release.streams.toLocaleString()}</TableCell>
-                        <TableCell>{release.platforms}</TableCell>
-                      </TableRow>
+                {catalogLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="animate-pulse h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                ) : catalogData.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <p>You haven't distributed any music yet.</p>
+                    <Link to="/distribute">
+                      <Button className="mt-4 bg-red-600 hover:bg-red-700">
+                        Distribute Your First Track
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Release Date</TableHead>
+                        <TableHead>Streams</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {catalogData.map((release) => (
+                        <TableRow key={release.id}>
+                          <TableCell className="font-medium">{release.track_title}</TableCell>
+                          <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
+                          <TableCell>{release.streams_count?.toLocaleString() || '0'}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              release.status === "approved" 
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" 
+                                : release.status === "pending" 
+                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100" 
+                                  : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
+                            }`}>
+                              {release.status.charAt(0).toUpperCase() + release.status.slice(1)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -190,47 +277,66 @@ const Dashboard = () => {
                     Your streaming revenue and payment status
                   </CardDescription>
                 </div>
-                <Button size="sm" onClick={handleDownloadReport}>
+                <Button 
+                  size="sm" 
+                  onClick={handleDownloadReport}
+                  disabled={earningsLoading || earningsData.length === 0}
+                >
                   Download Report
                 </Button>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Period</TableHead>
-                      <TableHead>Earnings</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Payment Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {earningsData.map((earning, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-medium">{earning.period}</TableCell>
-                        <TableCell>${earning.earnings.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            earning.status === "Paid" 
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" 
-                              : earning.status === "Processing" 
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" 
-                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
-                          }`}>
-                            {earning.status}
-                          </span>
-                        </TableCell>
-                        <TableCell>{earning.date}</TableCell>
-                      </TableRow>
+                {earningsLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="animate-pulse h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     ))}
-                  </TableBody>
-                  <TableFooter>
-                    <TableRow>
-                      <TableCell colSpan={1}>Total</TableCell>
-                      <TableCell colSpan={3} className="text-right">${totalEarnings.toFixed(2)}</TableCell>
-                    </TableRow>
-                  </TableFooter>
-                </Table>
+                  </div>
+                ) : earningsData.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <p>No earnings history available yet.</p>
+                    <p className="mt-2">Start distributing your music to earn royalties.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Period</TableHead>
+                        <TableHead>Earnings</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Payment Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {earningsData.map((earning, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium">{earning.period}</TableCell>
+                          <TableCell>${earning.earnings.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              earning.status === "Paid" 
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" 
+                                : earning.status === "Processing" 
+                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" 
+                                  : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
+                            }`}>
+                              {earning.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>{earning.date}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow>
+                        <TableCell colSpan={1}>Total</TableCell>
+                        <TableCell colSpan={3} className="text-right">
+                          ${earningsData.reduce((sum, item) => sum + item.earnings, 0).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
