@@ -10,14 +10,34 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { LogIn } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  password: z.string().min(1, { message: "Password is required" }),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
 });
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  
   const { login, isAdmin, hasActiveSubscription } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,24 +52,94 @@ const Login = () => {
     },
   });
 
+  const resetForm = useForm<z.infer<typeof forgotPasswordSchema>>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
+    setError(null);
+    
     try {
-      const success = await login(values.email, values.password);
-      if (success) {
-        if (isAdmin) {
-          // Always redirect admins to the admin dashboard
-          navigate('/admin');
-        } else if (!hasActiveSubscription) {
-          // Redirect regular users without subscription to pricing
-          navigate('/pricing');
-        } else {
-          // Regular users with subscription go to the requested page or dashboard
-          navigate(from);
+      // Sign in with Supabase directly
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+      
+      if (error) {
+        setError(error.message);
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        // Success - get user profile
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${data.user.user_metadata.name || data.user.email}!`,
+        });
+        
+        // Use AuthContext to update user
+        const success = await login(values.email, values.password);
+        if (success) {
+          if (isAdmin) {
+            // Always redirect admins to the admin dashboard
+            navigate('/admin');
+          } else {
+            // Regular users with subscription go to the requested page or dashboard
+            navigate(from);
+          }
         }
       }
+    } catch (error: any) {
+      setError(error.message);
+      toast({
+        title: "Login error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (values: z.infer<typeof forgotPasswordSchema>) => {
+    setResetLoading(true);
+    setError(null);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      
+      if (error) {
+        setError(error.message);
+        toast({
+          title: "Reset password failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setResetEmailSent(true);
+        toast({
+          title: "Reset email sent",
+          description: "Check your email for the password reset link",
+        });
+      }
+    } catch (error: any) {
+      setError(error.message);
+      toast({
+        title: "Reset password error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -66,6 +156,12 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+              {error}
+            </div>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -94,6 +190,52 @@ const Login = () => {
                   </FormItem>
                 )}
               />
+              <div className="flex justify-end">
+                <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="link" className="p-0 text-sm text-red-600 hover:underline" onClick={() => setIsResetOpen(true)}>
+                      Forgot password?
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Reset your password</DialogTitle>
+                      <DialogDescription>
+                        Enter your email address and we'll send you a link to reset your password.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    {resetEmailSent ? (
+                      <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4 text-sm">
+                        Password reset email sent. Please check your inbox.
+                      </div>
+                    ) : (
+                      <Form {...resetForm}>
+                        <form onSubmit={resetForm.handleSubmit(handleForgotPassword)} className="space-y-4">
+                          <FormField
+                            control={resetForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="your@email.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <DialogFooter>
+                            <Button type="submit" className="w-full" disabled={resetLoading}>
+                              {resetLoading ? "Sending..." : "Send Reset Link"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <span className="flex items-center">

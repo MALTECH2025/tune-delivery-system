@@ -2,9 +2,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { sendEmail } from '@/utils/emailService';
+import { supabase } from '@/integrations/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
 
-export interface User {
+export interface UserProfile {
   id: string;
   email: string;
   name: string;
@@ -15,14 +16,14 @@ export interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: UserProfile | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   hasActiveSubscription: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  updateUser: (userData: Partial<User>) => void;
+  updateUser: (userData: Partial<UserProfile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,6 +36,7 @@ export const useAuth = () => {
   return context;
 };
 
+// Mock users for development
 const mockUsers = [
   {
     id: '1',
@@ -59,167 +61,263 @@ const mockUsers = [
 ];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('malpinohdistro_user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setIsAuthenticated(true);
-      setIsAdmin(parsedUser.isAdmin || false);
-      
-      // Check if user has active subscription
-      if (parsedUser.subscriptionPlan && parsedUser.subscriptionExpiryDate) {
-        const expiryDate = new Date(parsedUser.subscriptionExpiryDate);
-        setHasActiveSubscription(expiryDate > new Date());
-      } else {
-        setHasActiveSubscription(false);
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          // Get user profile from Supabase
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching user profile:', error);
+          }
+
+          if (profile) {
+            const userProfile: UserProfile = {
+              id: profile.id,
+              email: profile.email,
+              name: profile.name,
+              opayWallet: profile.opay_wallet || '',
+              isAdmin: profile.admin || false,
+              subscriptionPlan: null,
+              subscriptionExpiryDate: null
+            };
+
+            // Get subscription info
+            const { data: subscription } = await supabase
+              .from('subscriptions')
+              .select('*')
+              .eq('user_id', profile.id)
+              .eq('status', 'active')
+              .order('end_date', { ascending: false })
+              .limit(1)
+              .single();
+
+            if (subscription) {
+              userProfile.subscriptionPlan = subscription.plan as 'monthly' | 'quarterly' | 'yearly';
+              userProfile.subscriptionExpiryDate = subscription.end_date;
+              
+              const expiryDate = new Date(subscription.end_date);
+              setHasActiveSubscription(expiryDate > new Date());
+            } else {
+              setHasActiveSubscription(false);
+            }
+
+            setUser(userProfile);
+            setIsAuthenticated(true);
+            setIsAdmin(userProfile.isAdmin || false);
+            localStorage.setItem('malpinohdistro_user', JSON.stringify(userProfile));
+          }
+        } else {
+          // User is logged out
+          setUser(null);
+          setIsAuthenticated(false);
+          setIsAdmin(false);
+          setHasActiveSubscription(false);
+          localStorage.removeItem('malpinohdistro_user');
+        }
+        
+        setSession(session);
+        setLoading(false);
       }
-    }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const foundUser = mockUsers.find(
-        u => u.email === email && u.password === password
-      );
-      
-      if (foundUser) {
-        const { password, ...userWithoutPassword } = foundUser;
+      // For mock users during development
+      if (email === 'demo@example.com' || email === 'admin@example.com') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        setUser(userWithoutPassword);
-        setIsAuthenticated(true);
-        setIsAdmin(userWithoutPassword.isAdmin || false);
+        const foundUser = mockUsers.find(
+          u => u.email === email && u.password === password
+        );
         
-        // Check if user has active subscription
-        if (userWithoutPassword.subscriptionPlan && userWithoutPassword.subscriptionExpiryDate) {
-          const expiryDate = new Date(userWithoutPassword.subscriptionExpiryDate);
-          setHasActiveSubscription(expiryDate > new Date());
-        } else {
+        if (foundUser) {
+          const { password, ...userWithoutPassword } = foundUser;
+          
+          setUser(userWithoutPassword);
+          setIsAuthenticated(true);
+          setIsAdmin(userWithoutPassword.isAdmin || false);
           setHasActiveSubscription(false);
+          
+          localStorage.setItem('malpinohdistro_user', JSON.stringify(userWithoutPassword));
+          
+          toast({
+            title: "Login successful",
+            description: `Welcome back, ${userWithoutPassword.name}!`,
+          });
+          
+          return true;
+        } else {
+          toast({
+            title: "Login failed",
+            description: "Invalid email or password",
+            variant: "destructive",
+          });
+          return false;
         }
-        
-        localStorage.setItem('malpinohdistro_user', JSON.stringify(userWithoutPassword));
-        
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${userWithoutPassword.name}!`,
-        });
-        
-        return true;
-      } else {
+      }
+      
+      // Real Supabase auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
         toast({
           title: "Login failed",
-          description: "Invalid email or password",
+          description: error.message,
           variant: "destructive",
         });
         return false;
       }
-    } catch (error) {
+      
+      return true;
+    } catch (error: any) {
       toast({
         title: "Login error",
         description: "An error occurred during login",
         variant: "destructive",
       });
+      console.error("Login error:", error);
       return false;
     }
   };
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          }
+        }
+      });
       
-      if (mockUsers.some(u => u.email === email)) {
+      if (error) {
         toast({
           title: "Signup failed",
-          description: "Email already in use",
+          description: error.message,
           variant: "destructive",
         });
         return false;
       }
       
-      const newUser = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        name,
-        opayWallet: '',
-        isAdmin: false,
-        subscriptionPlan: null,
-        subscriptionExpiryDate: null
-      };
-      
-      setUser(newUser);
-      setIsAuthenticated(true);
-      setIsAdmin(false);
-      setHasActiveSubscription(false);
-      localStorage.setItem('malpinohdistro_user', JSON.stringify(newUser));
-      
-      // Send welcome email
-      await sendEmail({
-        to: email,
-        templateType: 'welcome',
-        templateData: { 
-          name: name 
-        }
-      });
-      
       toast({
         title: "Signup successful",
-        description: `Welcome, ${name}! We've sent you a welcome email.`,
+        description: "Your account has been created. Please check your email to verify your account.",
       });
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Signup error",
         description: "An error occurred during signup",
         variant: "destructive",
       });
+      console.error("Signup error:", error);
       return false;
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    setIsAdmin(false);
-    setHasActiveSubscription(false);
-    localStorage.removeItem('malpinohdistro_user');
-    navigate('/login');
-    
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
-  };
-
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      setIsAdmin(updatedUser.isAdmin || false);
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
       
-      // Update subscription status
-      if (updatedUser.subscriptionPlan && updatedUser.subscriptionExpiryDate) {
-        const expiryDate = new Date(updatedUser.subscriptionExpiryDate);
-        setHasActiveSubscription(expiryDate > new Date());
-      } else {
-        setHasActiveSubscription(false);
-      }
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+      setHasActiveSubscription(false);
+      localStorage.removeItem('malpinohdistro_user');
       
-      localStorage.setItem('malpinohdistro_user', JSON.stringify(updatedUser));
+      navigate('/login');
       
       toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated",
+        title: "Logged out",
+        description: "You have been successfully logged out",
       });
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout error",
+        description: "An error occurred during logout",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUser = async (userData: Partial<UserProfile>) => {
+    if (user) {
+      try {
+        // Update profile in Supabase
+        if (session) {
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              name: userData.name || user.name,
+              opay_wallet: userData.opayWallet || user.opayWallet
+            })
+            .eq('id', user.id);
+          
+          if (error) {
+            throw error;
+          }
+        }
+        
+        const updatedUser = { ...user, ...userData };
+        setUser(updatedUser);
+        setIsAdmin(updatedUser.isAdmin || false);
+        
+        // Update subscription status
+        if (updatedUser.subscriptionPlan && updatedUser.subscriptionExpiryDate) {
+          const expiryDate = new Date(updatedUser.subscriptionExpiryDate);
+          setHasActiveSubscription(expiryDate > new Date());
+        } else {
+          setHasActiveSubscription(false);
+        }
+        
+        localStorage.setItem('malpinohdistro_user', JSON.stringify(updatedUser));
+        
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been successfully updated",
+        });
+      } catch (error) {
+        console.error("Update user error:", error);
+        toast({
+          title: "Update error",
+          description: "Failed to update your profile",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -234,7 +332,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout, 
       updateUser 
     }}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
