@@ -82,6 +82,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          next_payout_date: string | null
           opay_wallet: string | null
           updated_at: string
         }
@@ -92,6 +93,7 @@ export type Database = {
           email: string
           id?: string
           name: string
+          next_payout_date?: string | null
           opay_wallet?: string | null
           updated_at?: string
         }
@@ -102,6 +104,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          next_payout_date?: string | null
           opay_wallet?: string | null
           updated_at?: string
         }
@@ -118,6 +121,7 @@ export type Database = {
           id: string
           release_date: string
           status: string
+          streams_count: number | null
           track_title: string
           updated_at: string
           user_id: string
@@ -132,6 +136,7 @@ export type Database = {
           id?: string
           release_date: string
           status: string
+          streams_count?: number | null
           track_title: string
           updated_at?: string
           user_id: string
@@ -146,6 +151,7 @@ export type Database = {
           id?: string
           release_date?: string
           status?: string
+          streams_count?: number | null
           track_title?: string
           updated_at?: string
           user_id?: string

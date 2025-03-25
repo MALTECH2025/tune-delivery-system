@@ -166,7 +166,7 @@ export const getUserStats = async (userId: string) => {
     if (earningsError) throw earningsError;
     
     // Get next payout date
-    const { data: profile, error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
@@ -177,7 +177,7 @@ export const getUserStats = async (userId: string) => {
     return {
       totalStreams,
       totalEarnings: earningsData || 0,
-      nextPayoutDate: profile?.next_payout_date || null
+      nextPayoutDate: profileData?.next_payout_date || null
     };
   } catch (error) {
     console.error('Error fetching user stats:', error);
