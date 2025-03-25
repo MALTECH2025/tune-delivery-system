@@ -47,6 +47,33 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           admin: boolean | null
@@ -122,6 +149,30 @@ export type Database = {
           track_title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          created_at: string
+          id: number
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          key?: string
+          updated_at?: string
+          value?: Json
         }
         Relationships: []
       }
@@ -205,6 +256,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_total_platform_earnings: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_total_withdrawals: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_user_available_balance: {
         Args: {
           user_uuid: string

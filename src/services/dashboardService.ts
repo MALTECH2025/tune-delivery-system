@@ -12,9 +12,8 @@ export const getDashboardStats = async () => {
     if (userError) throw userError;
     
     // Get total earnings
-    const { data: earningsData, error: earningsError } = await supabase.rpc(
-      'get_total_platform_earnings'
-    );
+    const { data: earningsData, error: earningsError } = await supabase
+      .rpc('get_total_platform_earnings');
     
     if (earningsError) throw earningsError;
     
@@ -26,9 +25,8 @@ export const getDashboardStats = async () => {
     if (distributionsError) throw distributionsError;
     
     // Get total withdrawals
-    const { data: withdrawalsData, error: withdrawalsError } = await supabase.rpc(
-      'get_total_withdrawals'
-    );
+    const { data: withdrawalsData, error: withdrawalsError } = await supabase
+      .rpc('get_total_withdrawals');
     
     if (withdrawalsError) throw withdrawalsError;
     
@@ -79,7 +77,7 @@ export const getEarningsHistory = async (userId: string) => {
     if (error) throw error;
     
     // Group earnings by month
-    const groupedEarnings = data?.reduce((acc, earning) => {
+    const groupedEarnings = data?.reduce((acc: Record<string, any>, earning) => {
       const date = new Date(earning.earned_date);
       const monthYear = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
       
@@ -95,7 +93,7 @@ export const getEarningsHistory = async (userId: string) => {
       acc[monthYear].earnings += Number(earning.amount);
       
       return acc;
-    }, {} as Record<string, { period: string, earnings: number, status: string, date: string }>);
+    }, {});
     
     return Object.values(groupedEarnings || {});
   } catch (error) {
@@ -128,7 +126,7 @@ export const getSetting = async (key: string) => {
   try {
     const { data, error } = await supabase
       .from('settings')
-      .select('value')
+      .select('*')
       .eq('key', key)
       .single();
       
@@ -147,13 +145,17 @@ export const getUserStats = async (userId: string) => {
     // Get total streams
     const { data: releasesData, error: releasesError } = await supabase
       .from('releases')
-      .select('streams_count')
+      .select('*')
       .eq('user_id', userId);
     
     if (releasesError) throw releasesError;
     
     // Calculate total streams
-    const totalStreams = releasesData?.reduce((sum, release) => sum + (release.streams_count || 0), 0) || 0;
+    const totalStreams = releasesData?.reduce((sum, release) => {
+      // Check if streams_count exists and is a number
+      const streamCount = typeof release.streams_count === 'number' ? release.streams_count : 0;
+      return sum + streamCount;
+    }, 0) || 0;
     
     // Get total earnings
     const { data: earningsData, error: earningsError } = await supabase.rpc(
@@ -166,7 +168,7 @@ export const getUserStats = async (userId: string) => {
     // Get next payout date
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('next_payout_date')
+      .select('*')
       .eq('id', userId)
       .single();
     

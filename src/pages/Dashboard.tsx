@@ -247,7 +247,7 @@ const Dashboard = () => {
                         <TableRow key={release.id}>
                           <TableCell className="font-medium">{release.track_title}</TableCell>
                           <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
-                          <TableCell>{release.streams_count?.toLocaleString() || '0'}</TableCell>
+                          <TableCell>{(release.streams_count ?? 0).toLocaleString()}</TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               release.status === "approved" 

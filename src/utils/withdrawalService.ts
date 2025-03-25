@@ -35,40 +35,50 @@ export const submitWithdrawalRequest = async (request: WithdrawalRequest): Promi
     }
     
     // Create a notification for the user
-    await supabase
-      .from('notifications')
-      .insert({
-        user_id: request.userId,
-        message: `Your withdrawal request for $${request.amount.toFixed(2)} has been submitted`,
-        type: 'withdrawal'
-      });
+    try {
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: request.userId,
+          message: `Your withdrawal request for $${request.amount.toFixed(2)} has been submitted`,
+          type: 'withdrawal'
+        });
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError);
+      // Continue even if notification fails
+    }
     
     // Also create a notification for admin users
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', request.userId)
-      .single();
-      
-    if (profileData) {
-      // Get all admin user IDs
-      const { data: adminData } = await supabase
+    try {
+      const { data: profileData } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('admin', true);
-      
-      // Create notifications for each admin
-      if (adminData && adminData.length > 0) {
-        const adminNotifications = adminData.map(admin => ({
-          user_id: admin.id,
-          message: `New withdrawal request: $${request.amount.toFixed(2)} from ${profileData.name}`,
-          type: 'admin'
-        }));
+        .select('name')
+        .eq('id', request.userId)
+        .single();
         
-        await supabase
-          .from('notifications')
-          .insert(adminNotifications);
+      if (profileData) {
+        // Get all admin user IDs
+        const { data: adminData } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('admin', true);
+        
+        // Create notifications for each admin
+        if (adminData && adminData.length > 0) {
+          for (const admin of adminData) {
+            await supabase
+              .from('notifications')
+              .insert({
+                user_id: admin.id,
+                message: `New withdrawal request: $${request.amount.toFixed(2)} from ${profileData.name}`,
+                type: 'admin'
+              });
+          }
+        }
       }
+    } catch (adminError) {
+      console.error('Failed to notify admins:', adminError);
+      // Continue even if admin notification fails
     }
     
     return true;
@@ -107,7 +117,7 @@ export const getMinWithdrawalAmount = async (): Promise<number> => {
   try {
     const { data, error } = await supabase
       .from('settings')
-      .select('value')
+      .select('*')
       .eq('key', 'min_withdrawal')
       .single();
       
@@ -116,7 +126,7 @@ export const getMinWithdrawalAmount = async (): Promise<number> => {
       return 25; // Default minimum withdrawal amount
     }
     
-    return data && data.value ? parseFloat(data.value.toString()) : 25;
+    return data && data.value ? parseFloat(JSON.stringify(data.value)) : 25;
   } catch (error) {
     console.error('Error in getMinWithdrawalAmount:', error);
     return 25; // Default minimum withdrawal amount

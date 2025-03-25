@@ -187,14 +187,19 @@ export const addUserEarnings = async (userId: string, amount: number, descriptio
     
     if (error) throw error;
     
-    // Create notification
-    await supabase
-      .from('notifications')
-      .insert({
-        user_id: userId,
-        message: `New earnings of $${amount.toFixed(2)} added to your account`,
-        type: 'earnings'
-      });
+    try {
+      // Create notification
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          message: `New earnings of $${amount.toFixed(2)} added to your account`,
+          type: 'earnings'
+        });
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError);
+      // Continue even if notification fails
+    }
     
     return { success: true, data };
   } catch (error) {
