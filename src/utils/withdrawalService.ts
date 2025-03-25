@@ -85,18 +85,21 @@ export const getUserBalance = async (userId: string): Promise<number> => {
  */
 export const getMinWithdrawalAmount = async (): Promise<number> => {
   try {
-    const { data, error } = await supabase
+    // Use type assertion to bypass the type checking for the settings table
+    // that's not yet recognized in the TypeScript definitions
+    const result = await (supabase as any)
       .from('settings')
       .select('value')
       .eq('key', 'min_withdrawal')
       .single();
       
-    if (error) {
-      console.error('Error fetching minimum withdrawal amount:', error);
+    if (result.error) {
+      console.error('Error fetching minimum withdrawal amount:', result.error);
       return 25; // Default minimum withdrawal amount
     }
     
-    return parseFloat(JSON.parse(data.value)) || 25;
+    const settingsData = result.data;
+    return settingsData && settingsData.value ? parseFloat(JSON.parse(settingsData.value)) : 25;
   } catch (error) {
     console.error('Error in getMinWithdrawalAmount:', error);
     return 25; // Default minimum withdrawal amount
