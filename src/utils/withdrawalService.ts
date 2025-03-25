@@ -81,6 +81,29 @@ export const getUserBalance = async (userId: string): Promise<number> => {
 };
 
 /**
+ * Get the minimum withdrawal amount from settings
+ */
+export const getMinWithdrawalAmount = async (): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'min_withdrawal')
+      .single();
+      
+    if (error) {
+      console.error('Error fetching minimum withdrawal amount:', error);
+      return 25; // Default minimum withdrawal amount
+    }
+    
+    return parseFloat(JSON.parse(data.value)) || 25;
+  } catch (error) {
+    console.error('Error in getMinWithdrawalAmount:', error);
+    return 25; // Default minimum withdrawal amount
+  }
+};
+
+/**
  * Get a user's withdrawal history
  */
 export const getWithdrawalHistory = async (userId: string, limit = 10): Promise<any[]> => {

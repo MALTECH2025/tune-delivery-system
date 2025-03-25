@@ -33,6 +33,18 @@ serve(async (req) => {
       );
     }
 
+    // Get current minimum withdrawal amount from settings
+    const { data: settings, error: settingsError } = await supabaseClient
+      .from("settings")
+      .select("value")
+      .eq("key", "min_withdrawal")
+      .single();
+    
+    if (settingsError) {
+      console.error("Error fetching settings:", settingsError);
+      // Continue with default min_withdrawal if settings can't be fetched
+    }
+
     // Record the payment in the earnings table
     const { data: earning, error: earningError } = await supabaseClient
       .from("earnings")
@@ -49,7 +61,7 @@ serve(async (req) => {
     if (earningError) {
       console.error("Error recording payment:", earningError);
       return new Response(
-        JSON.stringify({ error: "Failed to record payment" }),
+        JSON.stringify({ error: "Failed to record payment", details: earningError.message }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
@@ -90,7 +102,8 @@ serve(async (req) => {
               templateData: {
                 name: profile.name,
                 amount: `$${amount.toFixed(2)}`,
-                currentBalance: `$${parseFloat(balance || 0).toFixed(2)}`
+                currentBalance: `$${parseFloat(balance || 0).toFixed(2)}`,
+                minWithdrawal: settings ? `$${JSON.parse(settings.value)}` : "$25.00"
               }
             }),
           }
@@ -106,7 +119,8 @@ serve(async (req) => {
         success: true, 
         message: "Payment processed successfully",
         earning,
-        currentBalance: balance
+        currentBalance: balance,
+        minWithdrawal: settings ? JSON.parse(settings.value) : 25
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );

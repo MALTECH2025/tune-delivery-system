@@ -63,7 +63,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email: string
-          id: string
+          id?: string
           name: string
           opay_wallet?: string | null
           updated_at?: string
