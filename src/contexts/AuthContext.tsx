@@ -11,6 +11,7 @@ export interface UserProfile {
   name: string;
   opayWallet?: string;
   isAdmin?: boolean;
+  role?: 'admin' | 'artist';
   subscriptionPlan?: 'monthly' | 'quarterly' | 'yearly' | null;
   subscriptionExpiryDate?: string | null;
 }
@@ -35,30 +36,6 @@ export const useAuth = () => {
   }
   return context;
 };
-
-// Mock users for development - only used when Supabase auth fails
-const mockUsers = [
-  {
-    id: '1',
-    email: 'demo@example.com',
-    password: 'password123',
-    name: 'Demo User',
-    opayWallet: '',
-    isAdmin: false,
-    subscriptionPlan: null,
-    subscriptionExpiryDate: null
-  },
-  {
-    id: '2',
-    email: 'admin@example.com',
-    password: 'admin123',
-    name: 'Admin User',
-    opayWallet: '',
-    isAdmin: true,
-    subscriptionPlan: null,
-    subscriptionExpiryDate: null
-  }
-];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -92,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name: profile.name,
               opayWallet: profile.opay_wallet || '',
               isAdmin: profile.admin || false,
+              role: profile.role || (profile.admin ? 'admin' : 'artist'),
               subscriptionPlan: null,
               subscriptionExpiryDate: null
             };
@@ -149,40 +127,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // For mock users during development
-      if (process.env.NODE_ENV === 'development' && (email === 'demo@example.com' || email === 'admin@example.com')) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const foundUser = mockUsers.find(
-          u => u.email === email && u.password === password
-        );
-        
-        if (foundUser) {
-          const { password, ...userWithoutPassword } = foundUser;
-          
-          setUser(userWithoutPassword);
-          setIsAuthenticated(true);
-          setIsAdmin(userWithoutPassword.isAdmin || false);
-          setHasActiveSubscription(false);
-          
-          localStorage.setItem('malpinohdistro_user', JSON.stringify(userWithoutPassword));
-          
-          toast({
-            title: "Login successful",
-            description: `Welcome back, ${userWithoutPassword.name}!`,
-          });
-          
-          return true;
-        } else {
-          toast({
-            title: "Login failed",
-            description: "Invalid email or password",
-            variant: "destructive",
-          });
-          return false;
-        }
-      }
-      
       // Real Supabase auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -223,6 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             name: name,
+            role: 'artist',
           }
         }
       });
@@ -244,7 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: data.user.id,
             email: email,
             name: name,
-            admin: false
+            admin: false,
+            role: 'artist'
           });
           
         if (profileError) {
@@ -304,7 +250,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .update({
               name: userData.name || user.name,
-              opay_wallet: userData.opayWallet || user.opayWallet
+              opay_wallet: userData.opayWallet || user.opayWallet,
+              role: userData.role || user.role,
+              admin: userData.isAdmin !== undefined ? userData.isAdmin : user.isAdmin
             })
             .eq('id', user.id);
           
