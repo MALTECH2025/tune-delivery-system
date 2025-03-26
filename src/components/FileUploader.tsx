@@ -72,16 +72,18 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       // Create full path including user ID for better organization
       const filePath = `${userId}/${folderPath}/${file.name}`;
       
-      // Upload file to Supabase Storage
+      // Set up upload progress tracking
+      const handleProgress = (progress: { loaded: number; total: number }) => {
+        const percent = Math.round((progress.loaded / progress.total) * 100);
+        setUploadProgress(percent);
+      };
+      
+      // Upload file to Supabase Storage - without onUploadProgress which isn't in type definition
       const { data, error } = await supabase.storage
         .from(bucketId)
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true,
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(percent);
-          }
+          upsert: true
         });
       
       if (error) throw error;
@@ -108,6 +110,8 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       });
     } finally {
       setIsUploading(false);
+      // Set progress to 100% when finished regardless of success or failure
+      setUploadProgress(100);
     }
   };
 

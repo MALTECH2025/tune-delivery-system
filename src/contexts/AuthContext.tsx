@@ -63,13 +63,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           if (profile) {
+            // Define default role based on admin flag if role doesn't exist in profile
+            const userRole = profile.role || (profile.admin ? 'admin' : 'artist');
+            
             const userProfile: UserProfile = {
               id: profile.id,
               email: profile.email,
               name: profile.name,
               opayWallet: profile.opay_wallet || '',
               isAdmin: profile.admin || false,
-              role: profile.role || (profile.admin ? 'admin' : 'artist'),
+              role: userRole as 'admin' | 'artist',
               subscriptionPlan: null,
               subscriptionExpiryDate: null
             };
