@@ -207,10 +207,11 @@ const SubmissionForm = () => {
               bucketId="music_files"
               userId={user?.id || ''}
               folderPath={`audio/${Date.now()}`}
-              acceptedFileTypes="audio/mpeg,audio/wav,audio/mp3"
-              maxSizeMB={50}
+              acceptFileTypes="audio/mpeg,audio/wav,audio/mp3"
+              maxFileSizeMB={50}
               onFileUploaded={setAudioUrl}
-              label="Upload Music File"
+              buttonText="Upload Music File"
+              className="w-full"
             />
           </div>
 
@@ -220,10 +221,11 @@ const SubmissionForm = () => {
               bucketId="music_files"
               userId={user?.id || ''}
               folderPath={`artwork/${Date.now()}`}
-              acceptedFileTypes="image/jpeg,image/png,image/jpg"
-              maxSizeMB={10}
+              acceptFileTypes="image/jpeg,image/png,image/jpg"
+              maxFileSizeMB={10}
               onFileUploaded={setArtworkUrl}
-              label="Upload Artwork (3000x3000px recommended)"
+              buttonText="Upload Artwork (3000x3000px recommended)"
+              className="w-full"
             />
           </div>
         </CardContent>
