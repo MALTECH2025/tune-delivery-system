@@ -27,43 +27,38 @@ const Dashboard = () => {
   const { isAuthenticated, user } = useAuth();
   const { theme } = useTheme();
   
-  // Fetch user catalog data
   const { data: catalogData = [], isLoading: catalogLoading } = useQuery({
     queryKey: ['userCatalog', user?.id],
     queryFn: () => getUserCatalog(user?.id || ''),
     enabled: !!user?.id && isAuthenticated,
   });
   
-  // Fetch earnings history
   const { data: earningsData = [], isLoading: earningsLoading } = useQuery({
     queryKey: ['earningsHistory', user?.id],
     queryFn: () => getEarningsHistory(user?.id || ''),
     enabled: !!user?.id && isAuthenticated,
   });
   
-  // Fetch user stats
   const { data: userStats, isLoading: statsLoading } = useQuery({
     queryKey: ['userStats', user?.id],
     queryFn: () => getUserStats(user?.id || ''),
     enabled: !!user?.id && isAuthenticated,
   });
   
-  // Calculate totals
   const totalStreams = userStats?.totalStreams || 0;
   const totalEarnings = userStats?.totalEarnings || 0;
   
-  // Format next payout date
-  const nextPayoutDate = userStats?.nextPayoutDate 
-    ? new Date(userStats.nextPayoutDate).toLocaleDateString('en-US', { 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric' 
-      })
-    : 'Not scheduled';
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not available';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
   
-  // Handle download report
   const handleDownloadReport = () => {
-    // Generate CSV content
     const headers = ['Period', 'Earnings', 'Status', 'Payment Date'];
     const csvContent = earningsData.map(earning => 
       [earning.period, earning.earnings.toFixed(2), earning.status, earning.date].join(',')
@@ -71,7 +66,6 @@ const Dashboard = () => {
     
     const csv = [headers.join(','), ...csvContent].join('\n');
     
-    // Create a download link
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -88,14 +82,12 @@ const Dashboard = () => {
     });
   };
   
-  // Redirect if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
   
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">
@@ -119,7 +111,6 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold mb-2">Artist Dashboard</h1>
         <p className="text-muted-foreground mb-8">Welcome back, {user?.name}. Manage your music catalog and track your earnings</p>
         
-        {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
           <Link to="/distribute">
             <Button className="bg-red-600 hover:bg-red-700 flex items-center gap-2">
@@ -135,7 +126,6 @@ const Dashboard = () => {
           </Link>
         </div>
         
-        {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
@@ -170,31 +160,25 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-medium text-card-foreground">Next Payment</h3>
-                <Calendar className="h-5 w-5 text-blue-500" />
+                <h3 className="text-lg font-medium text-card-foreground">Available Balance</h3>
+                <Wallet className="h-5 w-5 text-blue-500" />
               </div>
               {statsLoading ? (
                 <div className="animate-pulse h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
               ) : (
                 <p className="text-3xl font-bold">
-                  {earningsData.find(item => item.status === "Pending") 
-                    ? `$${earningsData.find(item => item.status === "Pending")?.earnings.toFixed(2) || "0.00"}`
-                    : "$0.00"
-                  }
+                  ${userStats?.availableBalance?.toFixed(2) || "0.00"}
                 </p>
               )}
               <p className="text-sm text-muted-foreground mt-2">
-                {statsLoading ? (
-                  <div className="animate-pulse h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded mt-1"></div>
-                ) : (
-                  `Scheduled for ${nextPayoutDate}`
-                )}
+                <Link to="/withdraw" className="text-red-600 hover:underline">
+                  Request withdrawal
+                </Link>
               </p>
             </CardContent>
           </Card>
         </div>
         
-        {/* Main Content Tabs */}
         <Tabs defaultValue="catalog" value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="catalog" className="text-base py-3">
@@ -342,7 +326,6 @@ const Dashboard = () => {
         </Tabs>
       </main>
       
-      {/* Footer */}
       <footer className="py-8 bg-card border-t border-border">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">

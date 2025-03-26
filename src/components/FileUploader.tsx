@@ -1,84 +1,71 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, X, Check, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Upload } from 'lucide-react';
 
 interface FileUploaderProps {
   bucketId: string;
-  userId: string;
   folderPath: string;
-  acceptedFileTypes: string;
-  maxSizeMB: number;
-  onFileUploaded: (url: string) => void;
-  existingFileUrl?: string;
-  label?: string;
+  onFileUploaded?: (fileUrl: string, filePath: string) => void;
+  acceptFileTypes?: string;
+  maxFileSizeMB?: number;
+  userId: string;
+  buttonText?: string;
+  className?: string;
 }
 
-const FileUploader: React.FC<FileUploaderProps> = ({ 
-  bucketId, 
-  userId, 
-  folderPath, 
-  acceptedFileTypes, 
-  maxSizeMB, 
+const FileUploader: React.FC<FileUploaderProps> = ({
+  bucketId,
+  folderPath,
   onFileUploaded,
-  existingFileUrl,
-  label = 'Upload File'
+  acceptFileTypes = "image/*,audio/*",
+  maxFileSizeMB = 20,
+  userId,
+  buttonText = "Upload File",
+  className = "",
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [fileUrl, setFileUrl] = useState<string | null>(existingFileUrl || null);
-  const [error, setError] = useState<string | null>(null);
-
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+  
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size
-    const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > maxSizeMB) {
-      setError(`File size exceeds ${maxSizeMB}MB limit`);
-      toast({
-        title: "Upload Error",
-        description: `File size exceeds ${maxSizeMB}MB limit`,
-        variant: "destructive",
-      });
+    if (!e.target.files || e.target.files.length === 0) {
       return;
     }
-
-    // Validate file type
-    const fileTypes = acceptedFileTypes.split(',');
-    const isAcceptedType = fileTypes.some(type => 
-      file.type === type.trim() || 
-      file.name.endsWith(type.trim().replace('*', ''))
-    );
-
-    if (!isAcceptedType) {
-      setError(`File type not accepted. Please upload ${acceptedFileTypes}`);
-      toast({
-        title: "Upload Error",
-        description: `File type not accepted. Please upload ${acceptedFileTypes}`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
+    
+    const file = e.target.files[0];
+    
+    // Reset progress
     setUploadProgress(0);
+    
+    // Validate file size
+    const maxSizeBytes = maxFileSizeMB * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      toast({
+        title: "File too large",
+        description: `File exceeds ${maxFileSizeMB}MB limit.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Start upload
+    setIsUploading(true);
     
     try {
       // Create full path including user ID for better organization
       const filePath = `${userId}/${folderPath}/${file.name}`;
       
-      // Set up upload progress tracking
-      const handleProgress = (progress: { loaded: number; total: number }) => {
-        const percent = Math.round((progress.loaded / progress.total) * 100);
-        setUploadProgress(percent);
-      };
-      
-      // Upload file to Supabase Storage - without onUploadProgress which isn't in type definition
+      // Upload file to Supabase Storage - without onUploadProgress since it's not in the type definition
       const { data, error } = await supabase.storage
         .from(bucketId)
         .upload(filePath, file, {
@@ -88,86 +75,76 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       
       if (error) throw error;
       
+      // Simulate progress since we can't use onUploadProgress
+      setUploadProgress(100);
+      
       // Get public URL
-      const { data: urlData } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from(bucketId)
         .getPublicUrl(filePath);
       
-      setFileUrl(urlData.publicUrl);
-      onFileUploaded(urlData.publicUrl);
+      // Notify parent component
+      if (onFileUploaded) {
+        onFileUploaded(publicUrl, filePath);
+      }
       
       toast({
-        title: "Upload Successful",
-        description: "File has been uploaded successfully",
+        title: "Upload successful",
+        description: "Your file has been uploaded.",
       });
     } catch (error: any) {
-      console.error('Upload error:', error);
-      setError(error.message);
+      console.error('Error uploading file:', error);
       toast({
-        title: "Upload Failed",
-        description: error.message || "An error occurred during upload",
+        title: "Upload failed",
+        description: error.message || "An error occurred during upload.",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
-      // Set progress to 100% when finished regardless of success or failure
-      setUploadProgress(100);
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
-
-  const removeFile = () => {
-    setFileUrl(null);
-    onFileUploaded('');
-  };
-
+  
   return (
-    <div className="w-full">
-      {!fileUrl ? (
-        <div className={`border-2 border-dashed rounded-lg p-6 text-center ${error ? 'border-red-400' : 'border-gray-300 dark:border-gray-700'}`}>
-          <label className="flex flex-col items-center justify-center cursor-pointer">
-            <Upload className="w-10 h-10 text-gray-400 mb-2" />
-            <span className="text-sm text-gray-600 dark:text-gray-400 mb-2">{label}</span>
-            <span className="text-xs text-gray-500 dark:text-gray-500 mb-2">
-              {acceptedFileTypes.split(',').join(', ')} (Max: {maxSizeMB}MB)
-            </span>
-            {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-            {isUploading ? (
-              <div className="mt-2 w-full">
-                <div className="bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-red-500 h-full rounded-full" 
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">{uploadProgress}%</p>
-              </div>
-            ) : (
-              <Button variant="outline" size="sm" className="mt-2" disabled={isUploading}>
-                Select File
-              </Button>
-            )}
-            <input 
-              type="file" 
-              className="hidden" 
-              accept={acceptedFileTypes} 
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
-          </label>
-        </div>
-      ) : (
-        <div className="border rounded-lg p-3 flex items-center justify-between">
-          <div className="flex items-center">
-            <Check className="h-5 w-5 text-green-500 mr-2" />
-            <span className="text-sm truncate max-w-xs">
-              {fileUrl.split('/').pop()}
-            </span>
+    <div className={className}>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="file-upload" className="text-sm font-medium">
+          {buttonText}
+        </Label>
+        
+        <Button
+          type="button"
+          onClick={handleButtonClick}
+          variant="outline"
+          disabled={isUploading}
+          className="flex gap-2"
+        >
+          <Upload size={16} />
+          {isUploading ? 'Uploading...' : buttonText}
+        </Button>
+        
+        <Input
+          ref={fileInputRef}
+          id="file-upload"
+          type="file"
+          accept={acceptFileTypes}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        
+        {isUploading && (
+          <div className="mt-2">
+            <Progress value={uploadProgress} className="h-2" />
+            <p className="text-xs mt-1 text-muted-foreground">
+              {uploadProgress}% uploaded
+            </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={removeFile}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

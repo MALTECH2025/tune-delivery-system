@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Admin dashboard data
@@ -165,26 +164,25 @@ export const getUserStats = async (userId: string) => {
     
     if (earningsError) throw earningsError;
     
-    // Get next payout date
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    // Get available balance
+    const { data: availableBalance, error: balanceError } = await supabase.rpc(
+      'get_user_available_balance',
+      { user_uuid: userId }
+    );
     
-    if (profileError) throw profileError;
+    if (balanceError) throw balanceError;
     
     return {
       totalStreams,
       totalEarnings: earningsData || 0,
-      nextPayoutDate: profileData?.next_payout_date || null
+      availableBalance: availableBalance || 0
     };
   } catch (error) {
     console.error('Error fetching user stats:', error);
     return {
       totalStreams: 0,
       totalEarnings: 0,
-      nextPayoutDate: null
+      availableBalance: 0
     };
   }
 };

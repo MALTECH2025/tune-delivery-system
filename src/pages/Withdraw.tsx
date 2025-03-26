@@ -258,7 +258,7 @@ const Withdraw = () => {
                 <div className="space-y-2">
                   <h3 className="font-medium">Processing Time</h3>
                   <p className="text-sm text-muted-foreground">
-                    Withdrawal requests are typically processed within 3-5 business days.
+                    Withdrawal requests are typically processed within 3-5 business days after admin approval.
                   </p>
                 </div>
                 
