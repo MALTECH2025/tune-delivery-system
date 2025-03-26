@@ -1,43 +1,12 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Session, User } from '@supabase/supabase-js';
+import { toast } from '@/hooks/use-toast';
+import { UserProfile } from './types';
 
-export interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  opayWallet?: string;
-  isAdmin?: boolean;
-  role?: 'admin' | 'artist';
-  subscriptionPlan?: 'monthly' | 'quarterly' | 'yearly' | null;
-  subscriptionExpiryDate?: string | null;
-}
-
-interface AuthContextType {
-  user: UserProfile | null;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  hasActiveSubscription: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateUser: (userData: Partial<UserProfile>) => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function useAuthProvider() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -293,20 +262,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isAdmin,
-      hasActiveSubscription,
-      login, 
-      signup, 
-      logout, 
-      updateUser 
-    }}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
-};
-
-export default AuthContext;
+  return {
+    user,
+    isAuthenticated,
+    isAdmin,
+    hasActiveSubscription,
+    loading,
+    login,
+    signup,
+    logout,
+    updateUser
+  };
+}

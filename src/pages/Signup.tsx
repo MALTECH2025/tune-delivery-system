@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,7 +45,6 @@ const Signup = () => {
     setError(null);
     
     try {
-      // Register with Supabase directly
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -66,7 +64,6 @@ const Signup = () => {
           variant: "destructive",
         });
       } else {
-        // Success
         toast({
           title: "Account created",
           description: "Your account has been created successfully. You can now log in.",
@@ -96,7 +93,6 @@ const Signup = () => {
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
-            // Add metadata to be saved with the user
             role: 'artist',
           }
         },
@@ -110,7 +106,6 @@ const Signup = () => {
           variant: "destructive",
         });
       } 
-      // Don't show success message here as we'll be redirected
     } catch (error: any) {
       setError(error.message);
       toast({
@@ -287,3 +282,4 @@ const Signup = () => {
 };
 
 export default Signup;
+

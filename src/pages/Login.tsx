@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,7 +65,6 @@ const Login = () => {
     setError(null);
     
     try {
-      // Sign in with Supabase directly
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
@@ -80,20 +78,16 @@ const Login = () => {
           variant: "destructive",
         });
       } else {
-        // Success - get user profile
         toast({
           title: "Login successful",
           description: `Welcome back, ${data.user.user_metadata.name || data.user.email}!`,
         });
         
-        // Use AuthContext to update user
         const success = await login(values.email, values.password);
         if (success) {
           if (isAdmin) {
-            // Always redirect admins to the admin dashboard
             navigate('/admin');
           } else {
-            // Regular users with subscription go to the requested page or dashboard
             navigate(from);
           }
         }
@@ -165,7 +159,6 @@ const Login = () => {
           variant: "destructive",
         });
       } 
-      // Don't show success message here as we'll be redirected
     } catch (error: any) {
       setError(error.message);
       toast({
@@ -362,3 +355,4 @@ const Login = () => {
 };
 
 export default Login;
+

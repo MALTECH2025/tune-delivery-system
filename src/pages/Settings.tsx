@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +36,6 @@ const Settings = () => {
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [loadingPassword, setLoadingPassword] = useState(false);
   
-  // Redirect if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
@@ -69,7 +67,6 @@ const Settings = () => {
   const onProfileSubmit = async (values: z.infer<typeof profileFormSchema>) => {
     setLoadingProfile(true);
     try {
-      // In a real app, you would make an API call here
       await new Promise(resolve => setTimeout(resolve, 1000));
       updateUser({ name: values.name });
     } finally {
@@ -80,7 +77,6 @@ const Settings = () => {
   const onWalletSubmit = async (values: z.infer<typeof walletFormSchema>) => {
     setLoadingWallet(true);
     try {
-      // In a real app, you would make an API call here
       await new Promise(resolve => setTimeout(resolve, 1000));
       updateUser({ opayWallet: values.opayWallet });
     } finally {
@@ -91,9 +87,7 @@ const Settings = () => {
   const onPasswordSubmit = async (values: z.infer<typeof passwordFormSchema>) => {
     setLoadingPassword(true);
     try {
-      // In a real app, you would make an API call here
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // Reset form after successful submission
       passwordForm.reset();
       toast({
         title: "Password updated",
@@ -106,7 +100,6 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - Similar to Dashboard */}
       <header className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">
@@ -288,7 +281,6 @@ const Settings = () => {
         </Tabs>
       </main>
       
-      {/* Footer */}
       <footer className="py-8 bg-gray-100 border-t border-gray-200">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
